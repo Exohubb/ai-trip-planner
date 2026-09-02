@@ -1,4 +1,6 @@
 import express from "express";
+import { buildItineraryPrompt } from "./promptBuilder.ts";
+import { callLLM } from "./gemini.ts";
 
 const app = express();
 const PORT = process.env.SERVER_PORT ?? 3001;
@@ -11,7 +13,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-app.post("/api/itinerary", (req, res) => {
+app.post("/api/itinerary", async (req, res) => {
   const description = req.body?.description;
 
   if (typeof description !== "string" || description.trim().length === 0) {
@@ -29,8 +31,26 @@ app.post("/api/itinerary", (req, res) => {
     return;
   }
 
-  // Stub response — Gemini integration and response validation are added in later tasks.
-  res.status(200).json({ days: [] });
+  const prompt = buildItineraryPrompt(description);
+
+  let rawText: string;
+  try {
+    rawText = await callLLM(prompt);
+  } catch (err) {
+    // Never forward the raw provider error text or the API key to the client.
+    // eslint-disable-next-line no-console
+    console.error("Gemini call failed:", err);
+    res.status(502).json({ error: "upstream_error" });
+    return;
+  }
+
+  // NOTE: Response parsing/validation against ItinerarySchema is added in a
+  // later task. For now, forward Gemini's raw text as best-effort JSON.
+  try {
+    res.status(200).json(JSON.parse(rawText));
+  } catch {
+    res.status(200).send(rawText);
+  }
 });
 
 app.listen(PORT, () => {
