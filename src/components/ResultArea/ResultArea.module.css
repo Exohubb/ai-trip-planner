@@ -1,0 +1,5 @@
+.placeholder {
+  padding: var(--space-4, 16px);
+  font-family: var(--font-family, system-ui, sans-serif);
+  color: var(--color-text, #1a1a1e);
+}
