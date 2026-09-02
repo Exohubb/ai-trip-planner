@@ -1,6 +1,8 @@
+import { fileURLToPath } from "node:url";
 import express from "express";
 import { buildItineraryPrompt } from "./promptBuilder.ts";
 import { callLLM } from "./gemini.ts";
+import { ItinerarySchema } from "../shared/itinerarySchema.ts";
 
 const app = express();
 const PORT = process.env.SERVER_PORT ?? 3001;
@@ -44,16 +46,34 @@ app.post("/api/itinerary", async (req, res) => {
     return;
   }
 
-  // NOTE: Response parsing/validation against ItinerarySchema is added in a
-  // later task. For now, forward Gemini's raw text as best-effort JSON.
+  let parsedJson: unknown;
   try {
-    res.status(200).json(JSON.parse(rawText));
+    parsedJson = JSON.parse(rawText);
   } catch {
-    res.status(200).send(rawText);
+    res.status(502).json({ error: "invalid_response" });
+    return;
   }
+
+  const result = ItinerarySchema.safeParse(parsedJson);
+  if (!result.success) {
+    // Log validation issues server-side only; never forward Gemini's raw
+    // output or schema error details to the client.
+    // eslint-disable-next-line no-console
+    console.error("Gemini response failed schema validation:", result.error.issues);
+    res.status(502).json({ error: "invalid_response" });
+    return;
+  }
+
+  res.status(200).json(result.data);
 });
 
-app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Server listening on http://localhost:${PORT}`);
-});
+// Only start listening when this module is run directly (e.g. `tsx server/server.ts`),
+// not when it's imported by tests.
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  app.listen(PORT, () => {
+    // eslint-disable-next-line no-console
+    console.log(`Server listening on http://localhost:${PORT}`);
+  });
+}
+
+export { app };
