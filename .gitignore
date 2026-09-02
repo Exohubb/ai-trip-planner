@@ -1,0 +1,11 @@
+node_modules/
+.env
+dist/
+build/
+*.local
+
+# Editor/OS
+.DS_Store
+
+# Logs
+npm-debug.log*

@@ -1,0 +1,14 @@
+/* Design tokens (colors, spacing, typography) will be filled in during the
+   Visual Polish task. This placeholder keeps the styles/ folder wired up
+   from the initial scaffold. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
