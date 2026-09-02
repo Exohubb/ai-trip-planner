@@ -1,19 +1,28 @@
 import { useState } from "react";
 import TripInputForm from "./components/TripInputForm";
+import { useItineraryRequest } from "./hooks/useItineraryRequest";
 
 function App() {
-  const [tripDescription, setTripDescription] = useState("");
+  // Live-typed textarea value. Deliberately separate from the hook's
+  // `tripDescription` (which reflects the last-submitted description):
+  // this local state is never cleared on submit, so the text the user
+  // typed is retained in the input after any response (Req 1.5).
+  const [inputValue, setInputValue] = useState("");
+  const { submit, status } = useItineraryRequest();
 
-  // Temporary local submit handler: task 6 only builds the standalone form.
-  // Wiring this to the backend/request hook happens in a later task.
   function handleSubmit(description: string) {
-    console.log("Trip description submitted:", description);
+    submit(description);
   }
 
   return (
     <main>
       <h1>AI Trip Planner</h1>
-      <TripInputForm value={tripDescription} onChange={setTripDescription} onSubmit={handleSubmit} />
+      <TripInputForm
+        value={inputValue}
+        onChange={setInputValue}
+        onSubmit={handleSubmit}
+        disabled={status === "loading"}
+      />
     </main>
   );
 }
