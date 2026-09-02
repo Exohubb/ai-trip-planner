@@ -1,0 +1,69 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.label {
+  font-family: var(--font-family, system-ui, sans-serif);
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: var(--color-text, #1a1a1e);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: var(--space-3, 12px);
+  font-family: var(--font-family, system-ui, sans-serif);
+  font-size: var(--font-size-base, 1rem);
+  color: var(--color-text, #1a1a1e);
+  background-color: var(--color-bg, #ffffff);
+  border: 1px solid var(--color-border, #dcdce0);
+  border-radius: var(--radius, 8px);
+  resize: vertical;
+}
+
+.textarea:disabled {
+  background-color: var(--color-surface, #f7f7f8);
+  color: var(--color-text-muted, #55565c);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+}
+
+.charCount {
+  font-family: var(--font-family, system-ui, sans-serif);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-muted, #55565c);
+}
+
+.submitButton {
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-2, 8px) var(--space-5, 24px);
+  font-family: var(--font-family, system-ui, sans-serif);
+  font-size: var(--font-size-base, 1rem);
+  font-weight: 600;
+  color: #ffffff;
+  background-color: var(--color-primary, #2f5fd9);
+  border: none;
+  border-radius: var(--radius, 8px);
+  cursor: pointer;
+}
+
+.submitButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.errorMessage {
+  margin: 0;
+  font-family: var(--font-family, system-ui, sans-serif);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-danger, #b3261e);
+}
