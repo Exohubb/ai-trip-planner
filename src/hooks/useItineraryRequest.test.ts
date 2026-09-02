@@ -102,4 +102,44 @@ describe("useItineraryRequest", () => {
     expect(result.current.errorMessage).toBeNull();
     expect(result.current.itinerary).toEqual(secondItinerary);
   });
+
+  /** Validates: Requirements 6.7 (requestId used by ItineraryView to reset local edit state) */
+  it("updates requestId on each successful request but not on a background failure", async () => {
+    const first = deferred<ParseResult>();
+    const second = deferred<ParseResult>();
+
+    mockedFetchAndValidateItinerary.mockReturnValueOnce(first.promise);
+    mockedFetchAndValidateItinerary.mockReturnValueOnce(second.promise);
+
+    const { result } = renderHook(() => useItineraryRequest());
+
+    expect(result.current.requestId).toBe(0);
+
+    act(() => {
+      result.current.submit("first trip description");
+    });
+
+    await act(async () => {
+      first.resolve({ ok: true, itinerary: makeItinerary("First result") });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    const firstRequestId = result.current.requestId;
+    expect(firstRequestId).toBeGreaterThan(0);
+
+    // A background retry that fails should retain the previous itinerary and requestId.
+    act(() => {
+      result.current.submit("second trip description");
+    });
+
+    await act(async () => {
+      second.resolve({ ok: false, reason: "network" });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("error"));
+    expect(result.current.requestId).toBe(firstRequestId);
+    expect(result.current.itinerary).toEqual(makeItinerary("First result"));
+  });
 });

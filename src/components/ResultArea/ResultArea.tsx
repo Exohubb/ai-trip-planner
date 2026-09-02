@@ -4,12 +4,19 @@ import EmptyState from "../EmptyState";
 import LoadingSkeleton from "../LoadingSkeleton";
 import ErrorState from "../ErrorState";
 import EmptyResultState from "../EmptyResultState";
-import styles from "./ResultArea.module.css";
+import ItineraryView from "../ItineraryView";
 
 export interface ResultAreaProps {
   status: RequestStatus;
   itinerary: Itinerary | null;
   errorMessage: string | null;
+  /**
+   * Id of the request whose itinerary is currently loaded. Passed through as
+   * `ItineraryView`'s `key` so a new successful fetch resets its local edit
+   * state, while background loading/error cycles that retain the same
+   * itinerary (same requestId) do not.
+   */
+  requestId: number;
 }
 
 /**
@@ -18,7 +25,7 @@ export interface ResultAreaProps {
  * (Requirement 5.5-5.6, 7.6) fall through to the populated placeholder
  * because `itinerary` is non-null in those cases, regardless of `status`.
  */
-function ResultArea({ status, itinerary, errorMessage }: ResultAreaProps) {
+function ResultArea({ status, itinerary, errorMessage, requestId }: ResultAreaProps) {
   if (status === "idle") {
     return <EmptyState />;
   }
@@ -36,12 +43,7 @@ function ResultArea({ status, itinerary, errorMessage }: ResultAreaProps) {
   }
 
   if (itinerary) {
-    // Populated view placeholder — ItineraryView itself is built in task 11.
-    return (
-      <div className={styles.placeholder}>
-        <p>{itinerary.days.length} day itinerary ready.</p>
-      </div>
-    );
+    return <ItineraryView key={requestId} days={itinerary.days} />;
   }
 
   return <EmptyState />;

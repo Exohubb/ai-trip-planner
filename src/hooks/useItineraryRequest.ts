@@ -10,6 +10,10 @@ export interface RequestState {
   errorMessage: string | null;
   isBackground: boolean; // true when status is loading/error but itinerary is non-null
   tripDescription: string;
+  // id of the request whose itinerary is currently loaded (0 = none yet). Consumers
+  // (e.g. ItineraryView) key off this so a new successful fetch resets local edit
+  // state, while background loading/error cycles that retain the old itinerary do not.
+  requestId: number;
 }
 
 export type Action =
@@ -23,6 +27,7 @@ const initialState: RequestState = {
   errorMessage: null,
   isBackground: false,
   tripDescription: "",
+  requestId: 0,
 };
 
 function reducer(state: RequestState, action: Action): RequestState {
@@ -43,6 +48,7 @@ function reducer(state: RequestState, action: Action): RequestState {
         itinerary: action.itinerary,
         errorMessage: null,
         isBackground: false,
+        requestId: action.requestId,
       };
     case "FAILURE":
       return {

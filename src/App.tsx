@@ -9,7 +9,7 @@ function App() {
   // this local state is never cleared on submit, so the text the user
   // typed is retained in the input after any response (Req 1.5).
   const [inputValue, setInputValue] = useState("");
-  const { submit, status, itinerary, errorMessage } = useItineraryRequest();
+  const { submit, status, itinerary, errorMessage, requestId } = useItineraryRequest();
 
   function handleSubmit(description: string) {
     submit(description);
@@ -24,7 +24,7 @@ function App() {
         onSubmit={handleSubmit}
         disabled={status === "loading"}
       />
-      <ResultArea status={status} itinerary={itinerary} errorMessage={errorMessage} />
+      <ResultArea status={status} itinerary={itinerary} errorMessage={errorMessage} requestId={requestId} />
     </main>
   );
 }
