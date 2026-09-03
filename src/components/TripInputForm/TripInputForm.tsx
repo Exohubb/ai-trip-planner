@@ -1,9 +1,10 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { isBlankTripDescription, TRIP_DESCRIPTION_REQUIRED_MESSAGE } from "../../lib/validateTripDescription";
 import styles from "./TripInputForm.module.css";
 
 const MAX_DESCRIPTION_LENGTH = 2000;
-const REQUIRED_MESSAGE = "Please enter a trip description before submitting.";
+const REQUIRED_MESSAGE = TRIP_DESCRIPTION_REQUIRED_MESSAGE;
 
 export interface TripInputFormProps {
   /** Current Trip_Description text (controlled). */
@@ -28,7 +29,7 @@ function TripInputForm({ value, onChange, onSubmit, disabled = false }: TripInpu
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (value.trim().length === 0) {
+    if (isBlankTripDescription(value)) {
       setValidationMessage(REQUIRED_MESSAGE);
       return;
     }
