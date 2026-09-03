@@ -157,4 +157,25 @@ describe("App retry and regenerate flows", () => {
     await waitFor(() => expect(screen.getByText("Shibuya crossing")).toBeInTheDocument());
     expect(screen.queryByText("Colosseum tour")).not.toBeInTheDocument();
   });
+
+  /** Validates: Requirements 4.4, 7.5 */
+  it("renders the empty-result state, not the error state, when a successful response has zero days", async () => {
+    const user = userEvent.setup();
+    const first = deferred<ParseResult>();
+    mockedFetchAndValidateItinerary.mockReturnValueOnce(first.promise);
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/describe your trip/i), "A day trip somewhere quiet");
+    await user.click(screen.getByRole("button", { name: /plan my trip/i }));
+
+    await act(async () => {
+      first.resolve({ ok: true, itinerary: { days: [] } });
+      await Promise.resolve();
+    });
+
+    expect(await screen.findByText(/no itinerary could be generated/i)).toBeInTheDocument();
+    // Distinct from the error state: no alert role, no failure-style copy.
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
 });
