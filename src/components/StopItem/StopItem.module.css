@@ -3,6 +3,17 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background-color: var(--color-surface);
+  transition: border-color var(--transition-base);
+}
+
+/* Reorder state-change animation (Req 17.1): briefly highlights a Stop's
+   border right after its move-up/move-down control is activated. Bound to
+   `--transition-base`, so it's disabled/instant under
+   `prefers-reduced-motion: reduce` (Req 17.2) exactly like the
+   expand/collapse chevron/details animations above. Only the border
+   changes (not the background) so text contrast is unaffected. */
+.justMoved {
+  border-color: var(--color-primary);
 }
 
 .row {
@@ -69,10 +80,31 @@
 
 .chevron {
   color: var(--color-text-muted);
+  display: inline-block;
+  transition: transform var(--transition-base);
+}
+
+/* Expand/collapse animation (Req 17.1): the chevron rotates into its
+   "expanded" orientation instead of just swapping glyphs instantly. Bound
+   to `--transition-base`, which `tokens.css` collapses to 0ms under
+   `prefers-reduced-motion: reduce` (Req 17.2), so this becomes an instant
+   state change with no motion for those users. */
+.chevronExpanded {
+  transform: rotate(90deg);
 }
 
 .details {
   padding: 0 var(--space-4) var(--space-4);
+  animation: expand var(--transition-base) ease;
+}
+
+@keyframes expand {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .detailField {

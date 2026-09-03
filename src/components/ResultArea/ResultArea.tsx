@@ -39,6 +39,8 @@ export interface ResultAreaProps {
   isRefining?: boolean;
   /** Plain-language message shown when the last refinement request failed validation (Req 15.5). */
   refinementError?: string | null;
+  /** Forwarded to `ItineraryView` to force-expand every Stop (Requirement 17.5). */
+  expandSignal?: number;
 }
 
 /** Read-only preview of the Days streamed in so far, with no edit controls wired up yet. */
@@ -72,6 +74,7 @@ function ResultArea({
   onRefine,
   isRefining = false,
   refinementError = null,
+  expandSignal,
 }: ResultAreaProps) {
   if (status === "idle") {
     return <EmptyState />;
@@ -150,7 +153,7 @@ function ResultArea({
             retryValidationMessage={retryValidationMessage}
           />
         ) : null}
-        <ItineraryView key={requestId} days={itinerary.days} />
+        <ItineraryView key={requestId} days={itinerary.days} expandSignal={expandSignal} />
         {onRefine ? (
           <RefinementForm onSubmit={onRefine} disabled={isRefining} error={refinementError} />
         ) : null}

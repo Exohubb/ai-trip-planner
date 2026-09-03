@@ -6,6 +6,8 @@ import styles from "./ItineraryView.module.css";
 export interface ItineraryViewProps {
   /** The validated itinerary's Day list, copied into local edit state on mount. */
   days: Day[];
+  /** Forwarded to every `DayCard`/`StopItem` to force-expand it (Requirement 17.5). */
+  expandSignal?: number;
 }
 
 /**
@@ -16,7 +18,7 @@ export interface ItineraryViewProps {
  * fetch occurs, which resets this local edit state (see design.md's State
  * Management Design section).
  */
-function ItineraryView({ days }: ItineraryViewProps) {
+function ItineraryView({ days, expandSignal }: ItineraryViewProps) {
   const [localDays, setLocalDays] = useState<Day[]>(() => structuredClone(days));
 
   /**
@@ -60,6 +62,7 @@ function ItineraryView({ days }: ItineraryViewProps) {
           dayNumber={index + 1}
           onRemoveStop={handleRemoveStop}
           onMoveStop={handleMoveStop}
+          expandSignal={expandSignal}
         />
       ))}
     </div>

@@ -34,6 +34,28 @@
 
   --radius: 8px;
   --transition-fast: 150ms ease;
+  /* Used for expand/collapse and reorder state-change animations (Req 17.1). */
+  --transition-base: 300ms ease;
+}
+
+/* Dark theme token overrides (Requirement 17.3), toggled via a
+   `[data-theme="dark"]` attribute on <html> (set/persisted by `useTheme`).
+   Every color token above has a dark-mode counterpart here so components
+   never need their own dark-mode branching — they just consume the same
+   custom properties, which resolve differently depending on this attribute.
+   Contrast ratios mirror the light theme's (text/muted text against the
+   dark surface/background). */
+[data-theme="dark"] {
+  --color-bg: #16171a;
+  --color-surface: #202126;
+  --color-text: #f0f0f2; /* ~16:1 on --color-bg */
+  --color-text-muted: #b7b8be; /* ~7.2:1 on --color-bg */
+  --color-primary: #7fa1ff; /* ~7.5:1 on --color-bg for text use */
+  --color-danger: #ff8a80;
+  --color-success: #6fcf7d;
+  --color-focus-ring: #7fa1ff;
+  --color-border: #3a3b42;
+  --color-on-primary: #0b0b0d;
 }
 
 *,
@@ -67,4 +89,17 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
+}
+
+/* Reduced motion (Req 17.2): expand/collapse and reorder transitions are
+   built on the `--transition-base`/`--transition-fast` tokens rather than
+   hardcoded durations, so collapsing both to 0ms here instantly completes
+   every one of those state-change transitions app-wide for users whose OS
+   requests reduced motion, without each component needing its own
+   `prefers-reduced-motion` branch. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-base: 0ms;
+    --transition-fast: 0ms;
+  }
 }

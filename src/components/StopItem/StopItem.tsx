@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { isChartBlock, isChecklistBlock, isCostBlock, type Stop } from "@shared/itinerarySchema";
 import CostCard from "../CostCard";
 import ChecklistCard from "../ChecklistCard";
@@ -17,6 +17,13 @@ export interface StopItemProps {
   onMoveUp?: () => void;
   /** Moves this Stop down within its Day (Requirement 6.5). */
   onMoveDown?: () => void;
+  /**
+   * Bumped (to any new value) by the "expand all days" keyboard shortcut
+   * (Requirement 17.5) to force this Stop open, regardless of its current
+   * expand/collapse state. Undefined/unchanged has no effect, so this
+   * never fights with the user's own manual toggling.
+   */
+  expandSignal?: number;
 }
 
 /**
@@ -59,11 +66,54 @@ function StopDetails({ stop }: { stop: Stop }) {
  * Also renders remove and move-up/move-down controls (Requirement 6.4/6.5),
  * disabling move-up/move-down at the first/last boundary (Requirement 6.6).
  */
-function StopItem({ stop, isFirst = false, isLast = false, onRemove, onMoveUp, onMoveDown }: StopItemProps) {
+// Matches tokens.css's `--transition-base` duration (Req 17.1). Kept as a
+// plain JS constant, rather than read from CSS, since it only needs to
+// outlast the CSS transition long enough to clear `.justMoved` cleanly;
+// under `prefers-reduced-motion: reduce` the CSS transition itself
+// collapses to 0ms, so the highlight still appears/clears instantly.
+const REORDER_HIGHLIGHT_MS = 300;
+
+function StopItem({
+  stop,
+  isFirst = false,
+  isLast = false,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  expandSignal,
+}: StopItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  // Briefly highlighted (Requirement 17.1) after a move-up/move-down click,
+  // via a CSS transition on background-color, then cleared automatically.
+  const [justMoved, setJustMoved] = useState(false);
+
+  // "Expand all days" shortcut (Requirement 17.5): force this Stop open
+  // whenever `expandSignal` changes, without re-running on mount (the
+  // `undefined` initial value is intentionally excluded so a Stop that's
+  // never received a signal isn't force-expanded just by rendering).
+  useEffect(() => {
+    if (expandSignal === undefined) return;
+    setIsExpanded(true);
+  }, [expandSignal]);
+
+  useEffect(() => {
+    if (!justMoved) return undefined;
+    const timeoutId = setTimeout(() => setJustMoved(false), REORDER_HIGHLIGHT_MS);
+    return () => clearTimeout(timeoutId);
+  }, [justMoved]);
+
+  function handleMoveUp() {
+    setJustMoved(true);
+    onMoveUp?.();
+  }
+
+  function handleMoveDown() {
+    setJustMoved(true);
+    onMoveDown?.();
+  }
 
   return (
-    <li className={styles.container}>
+    <li className={justMoved ? `${styles.container} ${styles.justMoved}` : styles.container}>
       <div className={styles.row}>
         <button
           type="button"
@@ -73,15 +123,18 @@ function StopItem({ stop, isFirst = false, isLast = false, onRemove, onMoveUp, o
         >
           <span className={styles.title}>{stop.title}</span>
           {stop.time ? <span className={styles.time}>{stop.time}</span> : null}
-          <span className={styles.chevron} aria-hidden="true">
-            {isExpanded ? "▾" : "▸"}
+          <span
+            className={isExpanded ? `${styles.chevron} ${styles.chevronExpanded}` : styles.chevron}
+            aria-hidden="true"
+          >
+            ▸
           </span>
         </button>
         <div className={styles.controls}>
           <button
             type="button"
             className={styles.controlButton}
-            onClick={onMoveUp}
+            onClick={handleMoveUp}
             disabled={isFirst}
             aria-label={`Move ${stop.title} up`}
           >
@@ -90,7 +143,7 @@ function StopItem({ stop, isFirst = false, isLast = false, onRemove, onMoveUp, o
           <button
             type="button"
             className={styles.controlButton}
-            onClick={onMoveDown}
+            onClick={handleMoveDown}
             disabled={isLast}
             aria-label={`Move ${stop.title} down`}
           >

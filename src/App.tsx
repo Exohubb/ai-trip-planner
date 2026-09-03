@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import TripInputForm from "./components/TripInputForm";
 import ResultArea from "./components/ResultArea";
 import RestorePrompt from "./components/RestorePrompt";
+import ThemeToggle from "./components/ThemeToggle";
 import { useItineraryRequest } from "./hooks/useItineraryRequest";
 import { useStoredItinerary } from "./hooks/useStoredItinerary";
+import { useTheme } from "./hooks/useTheme";
+import { useGlobalShortcut } from "./hooks/useGlobalShortcut";
 import { isBlankTripDescription, TRIP_DESCRIPTION_REQUIRED_MESSAGE } from "./lib/validateTripDescription";
 import styles from "./App.module.css";
 
@@ -45,6 +48,15 @@ function App() {
   // reappears afterwards even though `storedItinerary` itself might still
   // be set (restore) or has been cleared (discard).
   const [showRestorePrompt, setShowRestorePrompt] = useState(() => storedItinerary !== null);
+
+  // Dark mode (Requirement 17.3/17.4): persisted theme choice, defaulting
+  // to light when nothing is stored.
+  const { theme, toggleTheme } = useTheme();
+
+  // Bumped by the "expand all days" shortcut below; forwarded down to every
+  // StopItem, which force-expands itself whenever this value changes
+  // (Requirement 17.5).
+  const [expandSignal, setExpandSignal] = useState(0);
 
   // Persist the itinerary to storage whenever a valid one is successfully
   // displayed (Req 16.1), overwriting any previously stored response.
@@ -89,9 +101,32 @@ function App() {
     submitStreaming(tripDescription);
   }
 
+  // Keyboard shortcuts (Requirement 17.5): "e" force-expands every Stop in
+  // every Day; "Enter" submits the current Trip_Description, same as
+  // clicking TripInputForm's submit button. Both are registered via
+  // useGlobalShortcut, which itself never fires either one while keyboard
+  // focus is within a text input/textarea, so normal typing (including
+  // pressing "e" or "Enter" while composing the description) is unaffected.
+  const handleExpandAllShortcut = useCallback(() => {
+    setExpandSignal((prev) => prev + 1);
+  }, []);
+
+  const handleSubmitShortcut = useCallback(() => {
+    if (status === "loading" || status === "streaming") return;
+    if (isBlankTripDescription(inputValue)) return;
+    setRetryValidationMessage(null);
+    submitStreaming(inputValue);
+  }, [status, inputValue, submitStreaming]);
+
+  useGlobalShortcut("e", handleExpandAllShortcut);
+  useGlobalShortcut("Enter", handleSubmitShortcut);
+
   return (
     <main className={styles.app}>
-      <h1>AI Trip Planner</h1>
+      <div className={styles.header}>
+        <h1>AI Trip Planner</h1>
+        <ThemeToggle theme={theme} onToggle={toggleTheme} />
+      </div>
       <TripInputForm
         value={inputValue}
         onChange={setInputValue}
@@ -115,6 +150,7 @@ function App() {
           onRefine={submitRefinement}
           isRefining={isRefining}
           refinementError={refinementError}
+          expandSignal={expandSignal}
         />
       )}
     </main>

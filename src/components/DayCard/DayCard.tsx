@@ -10,6 +10,8 @@ export interface DayCardProps {
   onRemoveStop?: (dayId: Day["id"], stopId: string) => void;
   /** Moves the given Stop up or down within this Day (Requirement 6.5/6.6). */
   onMoveStop?: (dayId: Day["id"], stopId: string, direction: "up" | "down") => void;
+  /** Forwarded to every `StopItem` to force-expand it (Requirement 17.5). */
+  expandSignal?: number;
 }
 
 /**
@@ -19,7 +21,7 @@ export interface DayCardProps {
  * `isLast` for each Stop from its array index so `StopItem` can disable
  * move-up/move-down at the boundaries (Requirement 6.6).
  */
-function DayCard({ day, dayNumber, onRemoveStop, onMoveStop }: DayCardProps) {
+function DayCard({ day, dayNumber, onRemoveStop, onMoveStop, expandSignal }: DayCardProps) {
   return (
     <section className={styles.container} aria-labelledby={`day-heading-${day.id}`}>
       <h3 id={`day-heading-${day.id}`} className={styles.heading}>
@@ -38,6 +40,7 @@ function DayCard({ day, dayNumber, onRemoveStop, onMoveStop }: DayCardProps) {
               onRemove={onRemoveStop ? () => onRemoveStop(day.id, stop.id) : undefined}
               onMoveUp={onMoveStop ? () => onMoveStop(day.id, stop.id, "up") : undefined}
               onMoveDown={onMoveStop ? () => onMoveStop(day.id, stop.id, "down") : undefined}
+              expandSignal={expandSignal}
             />
           ))}
         </ul>

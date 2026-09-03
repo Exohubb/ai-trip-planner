@@ -318,3 +318,54 @@ describe("App session persistence (restore/discard)", () => {
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual(makeItinerary("Colosseum tour"));
   });
 });
+
+const THEME_STORAGE_KEY = "ai-trip-planner:theme";
+
+describe("App UI polish (dark mode + keyboard shortcuts)", () => {
+  beforeEach(() => {
+    mockedStreamItinerary.mockReset();
+    window.localStorage.clear();
+    document.documentElement.removeAttribute("data-theme");
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+    document.documentElement.removeAttribute("data-theme");
+  });
+
+  /** Validates: Requirements 17.4 */
+  it("defaults to the light theme when no preference is stored", () => {
+    render(<App />);
+
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+  });
+
+  /** Validates: Requirements 17.3 */
+  it("toggles dark mode and persists the choice to localStorage across a fresh mount", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+
+    await user.click(screen.getByRole("button", { name: /switch to dark theme/i }));
+
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+
+    unmount();
+    render(<App />);
+
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(screen.getByRole("button", { name: /switch to light theme/i })).toBeInTheDocument();
+  });
+
+  /** Validates: Requirements 17.5 */
+  it("does not submit via the Enter-key shortcut while focus is within the trip description textarea", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/describe your trip/i), "A weekend in Rome{Enter}");
+
+    // The shortcut listener must have early-returned: no streaming request
+    // was triggered by the Enter keypress typed into the textarea.
+    expect(mockedStreamItinerary).not.toHaveBeenCalled();
+  });
+});
