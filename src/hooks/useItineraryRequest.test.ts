@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useItineraryRequest } from "./useItineraryRequest";
 import { fetchAndValidateItinerary, type ParseResult } from "../lib/fetchAndValidateItinerary";
 import type { Itinerary } from "@shared/itinerarySchema";
@@ -24,6 +24,93 @@ function deferred<T>() {
 }
 
 describe("useItineraryRequest", () => {
+  beforeEach(() => {
+    mockedFetchAndValidateItinerary.mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Validates: Requirements 2.8, 4.6 */
+  it("aborts the in-flight request after 30s and surfaces the timeout error message", async () => {
+    vi.useFakeTimers();
+
+    let capturedSignal: AbortSignal | undefined;
+    mockedFetchAndValidateItinerary.mockImplementation((_description, signal) => {
+      capturedSignal = signal;
+      // Never resolves on its own; only settles once the caller reacts to `signal`'s abort.
+      return new Promise((resolve) => {
+        signal.addEventListener("abort", () => {
+          resolve({ ok: false, reason: "timeout" });
+        });
+      });
+    });
+
+    const { result } = renderHook(() => useItineraryRequest());
+
+    act(() => {
+      result.current.submit("A weekend in Rome");
+    });
+
+    expect(capturedSignal?.aborted).toBe(false);
+
+    await act(async () => {
+      vi.advanceTimersByTime(30_000);
+      await Promise.resolve();
+    });
+
+    expect(capturedSignal?.aborted).toBe(true);
+    expect(result.current.status).toBe("error");
+    expect(result.current.errorMessage).toMatch(/took too long/i);
+  });
+
+  /** Validates: Requirements 2.8, 4.6, 5.3 */
+  it("discards a timed-out first request's outcome if a newer request has since been submitted", async () => {
+    vi.useFakeTimers();
+
+    const signals: AbortSignal[] = [];
+    mockedFetchAndValidateItinerary.mockImplementation((_description, signal) => {
+      signals.push(signal);
+      return new Promise((resolve) => {
+        signal.addEventListener("abort", () => {
+          resolve({ ok: false, reason: "timeout" });
+        });
+      });
+    });
+
+    const { result } = renderHook(() => useItineraryRequest());
+
+    act(() => {
+      result.current.submit("first trip description");
+    });
+
+    // First request's own AbortController is aborted immediately by the second
+    // submit (Req 5.2), before its 30s timer would ever fire.
+    act(() => {
+      result.current.submit("second trip description");
+    });
+
+    expect(signals[0]?.aborted).toBe(true);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    // The first request's (stale) timeout outcome must not be reflected in state.
+    expect(result.current.status).toBe("loading");
+
+    const second = signals[1];
+    await act(async () => {
+      vi.advanceTimersByTime(30_000);
+      await Promise.resolve();
+    });
+
+    expect(second?.aborted).toBe(true);
+    expect(result.current.status).toBe("error");
+    expect(result.current.errorMessage).toMatch(/took too long/i);
+  });
+
   /** Validates: Requirements 5.1, 5.2, 5.3, 5.4 */
   it("discards a stale first response that resolves after a second, newer request", async () => {
     const first = deferred<ParseResult>();

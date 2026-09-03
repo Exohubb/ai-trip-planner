@@ -2,6 +2,10 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { Itinerary } from "@shared/itinerarySchema";
 import { fetchAndValidateItinerary, type ParseResult } from "../lib/fetchAndValidateItinerary";
 
+// Mirrors the backend's own 30s timeout on its Gemini call (server/gemini.ts),
+// so the frontend never waits indefinitely on a hung backend request (Req 2.8, 4.6).
+const REQUEST_TIMEOUT_MS = 30_000;
+
 export type RequestStatus = "idle" | "loading" | "success" | "error";
 
 export interface RequestState {
@@ -100,7 +104,13 @@ export function useItineraryRequest(): UseItineraryRequestResult {
     abortControllerRef.current = controller;
     dispatch({ type: "SUBMIT", description, requestId });
 
+    // Client-side timeout mirroring the backend's own 30s Gemini timeout (Req 2.8, 4.6):
+    // abort this request's fetch if it hasn't settled within 30s, which
+    // fetchAndValidateItinerary maps to reason: "timeout".
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
     fetchAndValidateItinerary(description, controller.signal).then((result) => {
+      clearTimeout(timeoutId);
       if (requestId !== latestRequestId.current) return; // stale outcome discarded (Req 5.3)
 
       if (result.ok) {
