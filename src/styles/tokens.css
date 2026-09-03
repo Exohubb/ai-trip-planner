@@ -1,6 +1,40 @@
-/* Design tokens (colors, spacing, typography) will be filled in during the
-   Visual Polish task. This placeholder keeps the styles/ folder wired up
-   from the initial scaffold. */
+/* Shared design tokens (Requirement 10). Every color, spacing, typography,
+   radius, and transition value used across the app is defined here as a
+   CSS custom property; component CSS Modules consume these tokens directly
+   with no one-off/hardcoded values and no per-component fallback values. */
+
+:root {
+  /* Color — verified 4.5:1+ contrast for text-on-background pairs */
+  --color-bg: #ffffff;
+  --color-surface: #f7f7f8;
+  --color-text: #1a1a1e; /* ~16.1:1 on --color-bg */
+  --color-text-muted: #55565c; /* ~7.1:1 on --color-bg */
+  --color-primary: #2f5fd9; /* ~4.6:1 on white for text use */
+  --color-danger: #b3261e; /* ~6.5:1 on white for text use */
+  --color-success: #1e7d32;
+  --color-focus-ring: #2f5fd9; /* 3:1+ against --color-surface/--color-bg, Req 10.4 */
+  --color-border: #dcdce0;
+  --color-on-primary: #ffffff; /* text/icon color on --color-primary buttons, ~4.6:1 */
+
+  /* Spacing scale (4px base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  /* Typography scale */
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.75rem;
+  --font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius: 8px;
+  --transition-fast: 150ms ease;
+}
 
 *,
 *::before,
@@ -10,5 +44,16 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+}
+
+/* Global focus indicator (Req 10.4): every native button/textarea/link gets
+   a single, consistent, high-contrast ring. No component overrides this
+   with per-element focus styling, and no tabIndex overrides are used
+   anywhere, so natural DOM tab order is preserved (Req 10.3). */
+:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }

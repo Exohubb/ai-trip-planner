@@ -2,34 +2,34 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3, 12px);
-  padding: var(--space-6, 32px) var(--space-4, 16px);
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
   text-align: center;
 }
 
 .icon {
   display: inline-flex;
-  color: var(--color-danger, #b3261e);
+  color: var(--color-danger);
 }
 
 .text {
   margin: 0;
-  font-family: var(--font-family, system-ui, sans-serif);
-  font-size: var(--font-size-base, 1rem);
-  color: var(--color-text, #1a1a1e);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
 }
 
 .retryButton {
   min-width: 44px;
   min-height: 44px;
-  padding: var(--space-2, 8px) var(--space-5, 24px);
-  font-family: var(--font-family, system-ui, sans-serif);
-  font-size: var(--font-size-base, 1rem);
+  padding: var(--space-2) var(--space-5);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
   font-weight: 600;
-  color: #ffffff;
-  background-color: var(--color-primary, #2f5fd9);
+  color: var(--color-on-primary);
+  background-color: var(--color-primary);
   border: none;
-  border-radius: var(--radius, 8px);
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
@@ -40,7 +40,7 @@
 
 .validationMessage {
   margin: 0;
-  font-family: var(--font-family, system-ui, sans-serif);
-  font-size: var(--font-size-sm, 0.875rem);
-  color: var(--color-danger, #b3261e);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
 }
