@@ -15,25 +15,39 @@ function App() {
   // blank Trip_Description (Req 9.3). Separate from TripInputForm's own
   // validation message since retry can be triggered independently of the form.
   const [retryValidationMessage, setRetryValidationMessage] = useState<string | null>(null);
-  const { submit, status, itinerary, errorMessage, requestId, tripDescription, isBackground } =
-    useItineraryRequest();
+  const {
+    submitStreaming,
+    status,
+    itinerary,
+    errorMessage,
+    requestId,
+    tripDescription,
+    isBackground,
+    partialDays,
+    streamIncomplete,
+  } = useItineraryRequest();
 
+  // The main submit/retry/regenerate flows all go through the streaming
+  // endpoint (Requirement 14): Day/Stop entries render incrementally as
+  // they arrive, and `submitStreaming` applies the exact same request-id/
+  // AbortController staleness handling as the original non-streaming
+  // `submit` (Requirement 14.4).
   function handleSubmit(description: string) {
     setRetryValidationMessage(null);
-    submit(description);
+    submitStreaming(description);
   }
 
-  // Retry/regenerate both resubmit through the same submit() path used by
-  // the initial form submission, so they're subject to identical
-  // stale-response handling (Req 9.4, 9.5) and empty/whitespace validation
-  // (Req 9.3), using the last-entered Trip_Description.
+  // Retry/regenerate both resubmit through the same submitStreaming() path
+  // used by the initial form submission, so they're subject to identical
+  // stale-response handling (Req 9.4, 9.5, 14.4) and empty/whitespace
+  // validation (Req 9.3), using the last-entered Trip_Description.
   function handleRetry() {
     if (isBlankTripDescription(tripDescription)) {
       setRetryValidationMessage(TRIP_DESCRIPTION_REQUIRED_MESSAGE);
       return;
     }
     setRetryValidationMessage(null);
-    submit(tripDescription);
+    submitStreaming(tripDescription);
   }
 
   return (
@@ -43,7 +57,7 @@ function App() {
         value={inputValue}
         onChange={setInputValue}
         onSubmit={handleSubmit}
-        disabled={status === "loading"}
+        disabled={status === "loading" || status === "streaming"}
       />
       <ResultArea
         status={status}
@@ -52,8 +66,10 @@ function App() {
         requestId={requestId}
         isBackground={isBackground}
         onRetry={handleRetry}
-        retryDisabled={status === "loading"}
+        retryDisabled={status === "loading" || status === "streaming"}
         retryValidationMessage={retryValidationMessage}
+        partialDays={partialDays}
+        streamIncomplete={streamIncomplete}
       />
     </main>
   );

@@ -2,13 +2,19 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useItineraryRequest } from "./useItineraryRequest";
 import { fetchAndValidateItinerary, type ParseResult } from "../lib/fetchAndValidateItinerary";
-import type { Itinerary } from "@shared/itinerarySchema";
+import { streamItinerary, type StreamItineraryCallbacks, type StreamOutcome } from "../lib/streamItinerary";
+import type { Day, Itinerary } from "@shared/itinerarySchema";
 
 vi.mock("../lib/fetchAndValidateItinerary", () => ({
   fetchAndValidateItinerary: vi.fn(),
 }));
 
+vi.mock("../lib/streamItinerary", () => ({
+  streamItinerary: vi.fn(),
+}));
+
 const mockedFetchAndValidateItinerary = vi.mocked(fetchAndValidateItinerary);
+const mockedStreamItinerary = vi.mocked(streamItinerary);
 
 function makeItinerary(label: string): Itinerary {
   return { days: [{ id: 1, stops: [{ id: "s1", title: label }] }] };
@@ -26,6 +32,7 @@ function deferred<T>() {
 describe("useItineraryRequest", () => {
   beforeEach(() => {
     mockedFetchAndValidateItinerary.mockReset();
+    mockedStreamItinerary.mockReset();
   });
 
   afterEach(() => {
@@ -228,5 +235,162 @@ describe("useItineraryRequest", () => {
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.requestId).toBe(firstRequestId);
     expect(result.current.itinerary).toEqual(makeItinerary("First result"));
+  });
+
+  /** A resolver pair for a streamItinerary call, exposing the callbacks it was invoked with. */
+  function deferredStream() {
+    let resolve!: (value: StreamOutcome) => void;
+    let callbacks!: StreamItineraryCallbacks;
+    const promise = new Promise<StreamOutcome>((res) => {
+      resolve = res;
+    });
+    mockedStreamItinerary.mockImplementationOnce((_description, _signal, cbs) => {
+      callbacks = cbs;
+      return promise;
+    });
+    return {
+      resolve,
+      getCallbacks: () => callbacks,
+    };
+  }
+
+  function makeDay(id: number, title: string): Day {
+    return { id, stops: [{ id: `s${id}`, title }] };
+  }
+
+  describe("submitStreaming", () => {
+    /** Validates: Requirements 14.1, 14.2 */
+    it("sets status to streaming and accumulates Day objects from onDays callbacks into partialDays", async () => {
+      const stream = deferredStream();
+      const { result } = renderHook(() => useItineraryRequest());
+
+      act(() => {
+        result.current.submitStreaming("A 2 day trip to Paris");
+      });
+
+      expect(result.current.status).toBe("streaming");
+      expect(result.current.partialDays).toEqual([]);
+
+      act(() => {
+        stream.getCallbacks().onDays([makeDay(1, "Eiffel Tower")]);
+      });
+      expect(result.current.partialDays).toEqual([makeDay(1, "Eiffel Tower")]);
+
+      act(() => {
+        stream.getCallbacks().onDays([makeDay(2, "Louvre")]);
+      });
+      expect(result.current.partialDays).toEqual([makeDay(1, "Eiffel Tower"), makeDay(2, "Louvre")]);
+    });
+
+    /** Validates: Requirements 14.5 */
+    it("transitions to success with the fully-assembled itinerary once the stream resolves ok", async () => {
+      const stream = deferredStream();
+      const { result } = renderHook(() => useItineraryRequest());
+
+      act(() => {
+        result.current.submitStreaming("A trip");
+      });
+
+      const finalItinerary = makeItinerary("Final result");
+      await act(async () => {
+        stream.resolve({ ok: true, itinerary: finalItinerary });
+        await Promise.resolve();
+      });
+
+      await waitFor(() => expect(result.current.status).toBe("success"));
+      expect(result.current.itinerary).toEqual(finalItinerary);
+      expect(result.current.partialDays).toEqual([]);
+    });
+
+    /** Validates: Requirements 14.3 */
+    it("on stream failure, sets error status but retains partialDays via streamIncomplete", async () => {
+      const stream = deferredStream();
+      const { result } = renderHook(() => useItineraryRequest());
+
+      act(() => {
+        result.current.submitStreaming("A trip");
+      });
+
+      act(() => {
+        stream.getCallbacks().onDays([makeDay(1, "Eiffel Tower")]);
+      });
+
+      await act(async () => {
+        stream.resolve({ ok: false, reason: "upstream_error" });
+        await Promise.resolve();
+      });
+
+      await waitFor(() => expect(result.current.status).toBe("error"));
+      expect(result.current.streamIncomplete).toBe(true);
+      expect(result.current.partialDays).toEqual([makeDay(1, "Eiffel Tower")]);
+      expect(result.current.errorMessage).toMatch(/incomplete/i);
+    });
+
+    /** Validates: Requirements 5.1-5.4, 14.4 */
+    it("discards chunks and the outcome of a stale (superseded) stream", async () => {
+      const first = deferredStream();
+      const { result } = renderHook(() => useItineraryRequest());
+
+      act(() => {
+        result.current.submitStreaming("first trip");
+      });
+      const firstCallbacks = first.getCallbacks();
+
+      const second = deferredStream();
+      act(() => {
+        result.current.submitStreaming("second trip");
+      });
+
+      // A chunk arriving late from the now-stale first stream must have no effect.
+      act(() => {
+        firstCallbacks.onDays([makeDay(1, "Stale day")]);
+      });
+      expect(result.current.partialDays).toEqual([]);
+
+      act(() => {
+        second.getCallbacks().onDays([makeDay(2, "Fresh day")]);
+      });
+      expect(result.current.partialDays).toEqual([makeDay(2, "Fresh day")]);
+
+      // The stale first stream's outcome arriving late must not flip status away from streaming.
+      await act(async () => {
+        first.resolve({ ok: true, itinerary: makeItinerary("Stale result") });
+        await Promise.resolve();
+      });
+      expect(result.current.status).toBe("streaming");
+      expect(result.current.itinerary).toBeNull();
+
+      const freshItinerary = makeItinerary("Fresh result");
+      await act(async () => {
+        second.resolve({ ok: true, itinerary: freshItinerary });
+        await Promise.resolve();
+      });
+
+      await waitFor(() => expect(result.current.status).toBe("success"));
+      expect(result.current.itinerary).toEqual(freshItinerary);
+    });
+
+    /** Validates: Requirements 5.2, 14.4 */
+    it("aborts the previous stream's signal when a new streaming request is submitted", async () => {
+      const capturedSignals: AbortSignal[] = [];
+      mockedStreamItinerary.mockImplementation((_description, signal) => {
+        capturedSignals.push(signal);
+        return new Promise(() => {
+          // never resolves
+        });
+      });
+
+      const { result } = renderHook(() => useItineraryRequest());
+
+      act(() => {
+        result.current.submitStreaming("first trip");
+      });
+      act(() => {
+        result.current.submitStreaming("second trip");
+      });
+
+      expect(capturedSignals[0]?.aborted).toBe(true);
+      expect(capturedSignals[1]?.aborted).toBe(false);
+    });
   });
 });

@@ -131,4 +131,90 @@ describe("ResultArea", () => {
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  /** Validates: Requirements 14.1, 14.2 */
+  it("renders a LoadingSkeleton while streaming with no partial days yet", () => {
+    render(
+      <ResultArea
+        status="streaming"
+        itinerary={null}
+        errorMessage={null}
+        requestId={0}
+        {...defaultRetryProps}
+        partialDays={[]}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toBeInTheDocument();
+  });
+
+  /** Validates: Requirements 14.1, 14.2 */
+  it("renders partial Day entries alongside the streaming indicator once days have arrived", () => {
+    render(
+      <ResultArea
+        status="streaming"
+        itinerary={null}
+        errorMessage={null}
+        requestId={0}
+        {...defaultRetryProps}
+        partialDays={[{ id: 1, stops: [{ id: "s1", title: "Museum visit" }] }]}
+      />,
+    );
+
+    expect(screen.getByText(/generating your itinerary/i)).toBeInTheDocument();
+    expect(screen.getByText("Museum visit")).toBeInTheDocument();
+  });
+
+  /** Validates: Requirement 14.3 */
+  it("retains partial Day entries and shows a RetryBanner when a stream fails with no retained itinerary", () => {
+    render(
+      <ResultArea
+        status="error"
+        itinerary={null}
+        errorMessage="The itinerary is incomplete."
+        requestId={0}
+        {...defaultRetryProps}
+        partialDays={[{ id: 1, stops: [{ id: "s1", title: "Museum visit" }] }]}
+        streamIncomplete
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("The itinerary is incomplete.");
+    expect(screen.getByText("Museum visit")).toBeInTheDocument();
+  });
+
+  /** Validates: Requirement 14.3 */
+  it("falls back to the full ErrorState when a stream fails before any day completed", () => {
+    render(
+      <ResultArea
+        status="error"
+        itinerary={null}
+        errorMessage="The itinerary is incomplete."
+        requestId={0}
+        {...defaultRetryProps}
+        partialDays={[]}
+        streamIncomplete
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent("The itinerary is incomplete.");
+    expect(screen.queryByText("Museum visit")).not.toBeInTheDocument();
+  });
+
+  /** Validates: Requirement 14.2 */
+  it("shows the streaming indicator alongside a retained itinerary during a background stream", () => {
+    render(
+      <ResultArea
+        status="streaming"
+        itinerary={populatedItinerary}
+        errorMessage={null}
+        requestId={1}
+        {...defaultRetryProps}
+        isBackground
+      />,
+    );
+
+    expect(screen.getByText(/generating your itinerary/i)).toBeInTheDocument();
+    expect(screen.getByText("Museum visit")).toBeInTheDocument();
+  });
 });

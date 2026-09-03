@@ -1,8 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { callLLM, GeminiCallError } from "./gemini";
+import { callLLM, GeminiCallError, streamLLM } from "./gemini";
 import { buildItineraryPrompt } from "./promptBuilder";
 
 const prompt = buildItineraryPrompt("A 3 day trip to Paris");
+
+/** Builds a fetch-Response-like object whose `.body` streams the given SSE frame strings. */
+function makeSseResponse(frames: string[], { ok = true, status = 200 } = {}) {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const frame of frames) {
+        controller.enqueue(encoder.encode(frame));
+      }
+      controller.close();
+    },
+  });
+  return { ok, status, body };
+}
+
+function sseFrame(text: string): string {
+  return `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] })}\n\n`;
+}
 
 describe("callLLM", () => {
   const originalApiKey = process.env.GEMINI_API_KEY;
@@ -115,5 +133,94 @@ describe("callLLM", () => {
     // Confirm the signal passed to fetch was the one that got aborted.
     const [, init] = fetchMock.mock.calls[0];
     expect((init?.signal as AbortSignal).aborted).toBe(true);
+  });
+});
+
+describe("streamLLM", () => {
+  const originalApiKey = process.env.GEMINI_API_KEY;
+
+  beforeEach(() => {
+    process.env.GEMINI_API_KEY = "test-api-key";
+  });
+
+  afterEach(() => {
+    process.env.GEMINI_API_KEY = originalApiKey;
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("throws GeminiCallError when GEMINI_API_KEY is not set", async () => {
+    delete process.env.GEMINI_API_KEY;
+
+    const gen = streamLLM(prompt);
+    await expect(gen.next()).rejects.toBeInstanceOf(GeminiCallError);
+  });
+
+  it("yields each text delta as its SSE frame arrives", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      makeSseResponse([sseFrame('{"days":'), sseFrame('[{"id":1,"stops":[]}]}')]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const deltas: string[] = [];
+    for await (const delta of streamLLM(prompt)) {
+      deltas.push(delta);
+    }
+
+    expect(deltas).toEqual(['{"days":', '[{"id":1,"stops":[]}]}']);
+  });
+
+  it("calls the streamGenerateContent endpoint with alt=sse and the API key, never elsewhere", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(makeSseResponse([sseFrame('{"days":[]}')]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for await (const _delta of streamLLM(prompt)) {
+      // drain
+    }
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain("streamGenerateContent");
+    expect(String(url)).toContain("alt=sse");
+    expect(String(url)).toContain("key=test-api-key");
+  });
+
+  it("throws GeminiCallError on a non-2xx response without leaking provider error text", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500, body: null });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const gen = streamLLM(prompt);
+    await expect(gen.next()).rejects.toBeInstanceOf(GeminiCallError);
+  });
+
+  it("throws GeminiCallError on a network failure", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("network failure"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const gen = streamLLM(prompt);
+    await expect(gen.next()).rejects.toBeInstanceOf(GeminiCallError);
+  });
+
+  it("throws GeminiCallError when the response has no readable body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, body: null });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const gen = streamLLM(prompt);
+    await expect(gen.next()).rejects.toBeInstanceOf(GeminiCallError);
+  });
+
+  it("skips SSE frames that aren't valid JSON rather than aborting the whole stream", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      makeSseResponse(["data: not valid json\n\n", sseFrame('{"days":[]}')]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const deltas: string[] = [];
+    for await (const delta of streamLLM(prompt)) {
+      deltas.push(delta);
+    }
+
+    expect(deltas).toEqual(['{"days":[]}']);
   });
 });
