@@ -4,6 +4,16 @@ import styles from "./StopItem.module.css";
 
 export interface StopItemProps {
   stop: Stop;
+  /** Whether this Stop is first within its Day; disables move-up (Requirement 6.6). */
+  isFirst?: boolean;
+  /** Whether this Stop is last within its Day; disables move-down (Requirement 6.6). */
+  isLast?: boolean;
+  /** Removes this Stop from its Day, with no confirmation step (Requirement 6.4). */
+  onRemove?: () => void;
+  /** Moves this Stop up within its Day (Requirement 6.5). */
+  onMoveUp?: () => void;
+  /** Moves this Stop down within its Day (Requirement 6.5). */
+  onMoveDown?: () => void;
 }
 
 /**
@@ -11,26 +21,56 @@ export interface StopItemProps {
  * (Requirement 6.2/6.3): collapsed by default, showing title + time;
  * expanded shows title, time, description, location, and notes.
  *
- * Remove/move-up/move-down controls are added in a follow-up task (12) and
- * are intentionally not part of this component yet.
+ * Also renders remove and move-up/move-down controls (Requirement 6.4/6.5),
+ * disabling move-up/move-down at the first/last boundary (Requirement 6.6).
  */
-function StopItem({ stop }: StopItemProps) {
+function StopItem({ stop, isFirst = false, isLast = false, onRemove, onMoveUp, onMoveDown }: StopItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <li className={styles.container}>
-      <button
-        type="button"
-        className={styles.summaryToggle}
-        onClick={() => setIsExpanded((prev) => !prev)}
-        aria-expanded={isExpanded}
-      >
-        <span className={styles.title}>{stop.title}</span>
-        {stop.time ? <span className={styles.time}>{stop.time}</span> : null}
-        <span className={styles.chevron} aria-hidden="true">
-          {isExpanded ? "▾" : "▸"}
-        </span>
-      </button>
+      <div className={styles.row}>
+        <button
+          type="button"
+          className={styles.summaryToggle}
+          onClick={() => setIsExpanded((prev) => !prev)}
+          aria-expanded={isExpanded}
+        >
+          <span className={styles.title}>{stop.title}</span>
+          {stop.time ? <span className={styles.time}>{stop.time}</span> : null}
+          <span className={styles.chevron} aria-hidden="true">
+            {isExpanded ? "▾" : "▸"}
+          </span>
+        </button>
+        <div className={styles.controls}>
+          <button
+            type="button"
+            className={styles.controlButton}
+            onClick={onMoveUp}
+            disabled={isFirst}
+            aria-label={`Move ${stop.title} up`}
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            className={styles.controlButton}
+            onClick={onMoveDown}
+            disabled={isLast}
+            aria-label={`Move ${stop.title} down`}
+          >
+            ↓
+          </button>
+          <button
+            type="button"
+            className={styles.controlButton}
+            onClick={onRemove}
+            aria-label={`Remove ${stop.title}`}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
       {isExpanded ? (
         <div className={styles.details}>
           {stop.description ? <p className={styles.detailField}>{stop.description}</p> : null}

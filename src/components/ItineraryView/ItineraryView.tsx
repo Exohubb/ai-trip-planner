@@ -17,12 +17,50 @@ export interface ItineraryViewProps {
  * Management Design section).
  */
 function ItineraryView({ days }: ItineraryViewProps) {
-  const [localDays] = useState<Day[]>(() => structuredClone(days));
+  const [localDays, setLocalDays] = useState<Day[]>(() => structuredClone(days));
+
+  /**
+   * Removes a Stop from its Day, immutably (Requirement 6.4). No
+   * confirmation step is required before the removal takes effect.
+   */
+  function handleRemoveStop(dayId: Day["id"], stopId: string) {
+    setLocalDays((prev) =>
+      prev.map((day) =>
+        day.id === dayId ? { ...day, stops: day.stops.filter((stop) => stop.id !== stopId) } : day,
+      ),
+    );
+  }
+
+  /**
+   * Reorders a Stop within its Day via an immutable splice-and-swap
+   * (Requirement 6.5). No-ops (leaves order unchanged) at the first/last
+   * boundary (Requirement 6.6).
+   */
+  function handleMoveStop(dayId: Day["id"], stopId: string, direction: "up" | "down") {
+    setLocalDays((prev) =>
+      prev.map((day) => {
+        if (day.id !== dayId) return day;
+        const idx = day.stops.findIndex((stop) => stop.id === stopId);
+        if (idx === -1) return day;
+        const swapWith = direction === "up" ? idx - 1 : idx + 1;
+        if (swapWith < 0 || swapWith >= day.stops.length) return day;
+        const stops = [...day.stops];
+        [stops[idx], stops[swapWith]] = [stops[swapWith], stops[idx]];
+        return { ...day, stops };
+      }),
+    );
+  }
 
   return (
     <div className={styles.dayList}>
       {localDays.map((day, index) => (
-        <DayCard key={day.id} day={day} dayNumber={index + 1} />
+        <DayCard
+          key={day.id}
+          day={day}
+          dayNumber={index + 1}
+          onRemoveStop={handleRemoveStop}
+          onMoveStop={handleMoveStop}
+        />
       ))}
     </div>
   );

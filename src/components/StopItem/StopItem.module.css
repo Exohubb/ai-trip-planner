@@ -5,11 +5,17 @@
   background-color: var(--color-surface, #f7f7f8);
 }
 
+.row {
+  display: flex;
+  align-items: stretch;
+}
+
 .summaryToggle {
   display: flex;
   align-items: center;
   gap: var(--space-3, 12px);
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   min-height: 44px;
   padding: var(--space-3, 12px) var(--space-4, 16px);
   font-family: var(--font-family, system-ui, sans-serif);
@@ -20,6 +26,33 @@
   border-radius: var(--radius, 8px);
   cursor: pointer;
   text-align: left;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1, 4px);
+  padding: 0 var(--space-2, 8px);
+}
+
+.controlButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  font-family: var(--font-family, system-ui, sans-serif);
+  font-size: var(--font-size-base, 1rem);
+  color: var(--color-text-muted, #55565c);
+  background: none;
+  border: none;
+  border-radius: var(--radius, 8px);
+  cursor: pointer;
+}
+
+.controlButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .title {
