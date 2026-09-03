@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TripInputForm from "./components/TripInputForm";
 import ResultArea from "./components/ResultArea";
+import RestorePrompt from "./components/RestorePrompt";
 import { useItineraryRequest } from "./hooks/useItineraryRequest";
+import { useStoredItinerary } from "./hooks/useStoredItinerary";
 import { isBlankTripDescription, TRIP_DESCRIPTION_REQUIRED_MESSAGE } from "./lib/validateTripDescription";
 import styles from "./App.module.css";
 
@@ -18,6 +20,7 @@ function App() {
   const {
     submitStreaming,
     submitRefinement,
+    restore,
     status,
     itinerary,
     errorMessage,
@@ -29,6 +32,39 @@ function App() {
     isRefining,
     refinementError,
   } = useItineraryRequest();
+
+  // Session persistence (Requirement 16). `storedItinerary` reflects
+  // whatever valid itinerary was found in localStorage on mount (or `null`
+  // if none/corrupted/storage unavailable); it is intentionally read once
+  // rather than re-derived from `itinerary` below, so the restore prompt's
+  // decision is based on what existed *before* this session started.
+  const { storedItinerary, saveItinerary, clearStoredItinerary } = useStoredItinerary();
+  // Whether the restore-or-discard prompt should still be shown. Starts
+  // true only if a valid stored itinerary was actually found; set to false
+  // as soon as the user restores or discards it, so the prompt never
+  // reappears afterwards even though `storedItinerary` itself might still
+  // be set (restore) or has been cleared (discard).
+  const [showRestorePrompt, setShowRestorePrompt] = useState(() => storedItinerary !== null);
+
+  // Persist the itinerary to storage whenever a valid one is successfully
+  // displayed (Req 16.1), overwriting any previously stored response.
+  // `saveItinerary` itself silently no-ops on failure (Req 16.6).
+  useEffect(() => {
+    if (status === "success" && itinerary) {
+      saveItinerary(itinerary);
+    }
+  }, [status, itinerary, saveItinerary]);
+
+  function handleRestore() {
+    if (!storedItinerary) return;
+    setShowRestorePrompt(false);
+    restore(storedItinerary);
+  }
+
+  function handleDiscardStored() {
+    setShowRestorePrompt(false);
+    clearStoredItinerary();
+  }
 
   // The main submit/retry/regenerate flows all go through the streaming
   // endpoint (Requirement 14): Day/Stop entries render incrementally as
@@ -62,21 +98,25 @@ function App() {
         onSubmit={handleSubmit}
         disabled={status === "loading" || status === "streaming"}
       />
-      <ResultArea
-        status={status}
-        itinerary={itinerary}
-        errorMessage={errorMessage}
-        requestId={requestId}
-        isBackground={isBackground}
-        onRetry={handleRetry}
-        retryDisabled={status === "loading" || status === "streaming"}
-        retryValidationMessage={retryValidationMessage}
-        partialDays={partialDays}
-        streamIncomplete={streamIncomplete}
-        onRefine={submitRefinement}
-        isRefining={isRefining}
-        refinementError={refinementError}
-      />
+      {showRestorePrompt ? (
+        <RestorePrompt onRestore={handleRestore} onDiscard={handleDiscardStored} />
+      ) : (
+        <ResultArea
+          status={status}
+          itinerary={itinerary}
+          errorMessage={errorMessage}
+          requestId={requestId}
+          isBackground={isBackground}
+          onRetry={handleRetry}
+          retryDisabled={status === "loading" || status === "streaming"}
+          retryValidationMessage={retryValidationMessage}
+          partialDays={partialDays}
+          streamIncomplete={streamIncomplete}
+          onRefine={submitRefinement}
+          isRefining={isRefining}
+          refinementError={refinementError}
+        />
+      )}
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
@@ -35,6 +35,14 @@ function deferredStream() {
 describe("App retry and regenerate flows", () => {
   beforeEach(() => {
     mockedStreamItinerary.mockReset();
+    // Session persistence (Requirement 16) auto-saves successful itineraries
+    // to localStorage; clear it so a prior test's saved itinerary can't
+    // trigger an unexpected restore prompt in a later test within this file.
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
   });
 
   /** Validates: Requirements 9.1, 9.2, 9.4, 9.5 */
@@ -231,5 +239,82 @@ describe("App retry and regenerate flows", () => {
 
     expect(await screen.findByText("Eiffel Tower")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent(/incomplete/i);
+  });
+});
+
+const STORAGE_KEY = "ai-trip-planner:itinerary";
+
+describe("App session persistence (restore/discard)", () => {
+  beforeEach(() => {
+    mockedStreamItinerary.mockReset();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  /** Validates: Requirements 16.2, 16.3 */
+  it("shows a restore prompt on load when a valid stored itinerary exists, and restores it like a fresh result", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ days: [{ id: 1, stops: [{ id: "s1", title: "Colosseum tour" }] }] }),
+    );
+
+    render(<App />);
+
+    expect(screen.getByText(/previously saved itinerary/i)).toBeInTheDocument();
+    // Initial empty state and the populated view are not shown yet.
+    expect(screen.queryByText(/describe your trip above/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /restore/i }));
+
+    expect(await screen.findByText("Colosseum tour")).toBeInTheDocument();
+    expect(mockedStreamItinerary).not.toHaveBeenCalled();
+  });
+
+  /** Validates: Requirements 16.4 */
+  it("deletes the stored itinerary and shows the initial empty state when the user declines to restore", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ days: [{ id: 1, stops: [{ id: "s1", title: "Colosseum tour" }] }] }),
+    );
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: /discard/i }));
+
+    expect(await screen.findByText(/describe your trip above/i)).toBeInTheDocument();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  /** Validates: Requirements 16.5 */
+  it("discards corrupted stored data and shows the initial empty state without a restore prompt", async () => {
+    window.localStorage.setItem(STORAGE_KEY, "{not valid json");
+
+    render(<App />);
+
+    expect(screen.queryByText(/previously saved itinerary/i)).not.toBeInTheDocument();
+    expect(await screen.findByText(/describe your trip above/i)).toBeInTheDocument();
+  });
+
+  /** Validates: Requirements 16.1 */
+  it("saves the itinerary to storage on a successful fetch", async () => {
+    const user = userEvent.setup();
+    const first = deferredStream();
+
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/describe your trip/i), "A weekend in Rome");
+    await user.click(screen.getByRole("button", { name: /plan my trip/i }));
+
+    await act(async () => {
+      first.resolve({ ok: true, itinerary: makeItinerary("Colosseum tour") });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(screen.getByText("Colosseum tour")).toBeInTheDocument());
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!)).toEqual(makeItinerary("Colosseum tour"));
   });
 });

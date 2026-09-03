@@ -50,7 +50,8 @@ export type Action =
   | { type: "STREAM_FAILURE"; requestId: number; message: string }
   | { type: "SUBMIT_REFINEMENT"; requestId: number }
   | { type: "REFINEMENT_SUCCESS"; requestId: number; itinerary: Itinerary }
-  | { type: "REFINEMENT_FAILURE"; requestId: number; message: string };
+  | { type: "REFINEMENT_FAILURE"; requestId: number; message: string }
+  | { type: "RESTORE"; requestId: number; itinerary: Itinerary };
 
 const initialState: RequestState = {
   status: "idle",
@@ -152,6 +153,22 @@ function reducer(state: RequestState, action: Action): RequestState {
         isRefining: false,
         refinementError: action.message,
       };
+    case "RESTORE":
+      // A previously stored itinerary, restored from client-side persistent
+      // storage, is rendered exactly as if it had just been received from a
+      // new request (Requirement 16.3): same "success" status, a bumped
+      // `requestId` so ItineraryView resets its local edit state, and no
+      // network request is ever made.
+      return {
+        ...state,
+        status: "success",
+        itinerary: action.itinerary,
+        errorMessage: null,
+        isBackground: false,
+        requestId: action.requestId,
+        partialDays: [],
+        streamIncomplete: false,
+      };
     default:
       return state;
   }
@@ -210,6 +227,14 @@ export interface UseItineraryRequestResult extends RequestState {
    * untouched and `refinementError` is set instead (Req 15.5/15.6).
    */
   submitRefinement: (instruction: string) => void;
+  /**
+   * Renders a previously stored itinerary (Requirement 16) as if it had
+   * just been received from a new request: marks all prior/in-flight
+   * requests stale via the same request-id/AbortController mechanism as
+   * `submit`, then dispatches directly to a "success" state without
+   * making any network call.
+   */
+  restore: (itinerary: Itinerary) => void;
 }
 
 /**
@@ -300,6 +325,12 @@ export function useItineraryRequest(): UseItineraryRequestResult {
     [state.itinerary]
   );
 
+  const restore = useCallback((itinerary: Itinerary) => {
+    const requestId = ++latestRequestId.current; // marks any prior/in-flight request stale
+    abortControllerRef.current?.abort(); // cancel any in-flight fetch (Req 5.2)
+    dispatch({ type: "RESTORE", requestId, itinerary });
+  }, []);
+
   // Abort any in-flight request if the hook's consumer unmounts.
   useEffect(() => {
     return () => {
@@ -307,5 +338,5 @@ export function useItineraryRequest(): UseItineraryRequestResult {
     };
   }, []);
 
-  return { ...state, submit, submitStreaming, submitRefinement };
+  return { ...state, submit, submitStreaming, submitRefinement, restore };
 }
