@@ -1,5 +1,8 @@
 import { useState } from "react";
-import type { Stop } from "@shared/itinerarySchema";
+import { isChartBlock, isChecklistBlock, isCostBlock, type Stop } from "@shared/itinerarySchema";
+import CostCard from "../CostCard";
+import ChecklistCard from "../ChecklistCard";
+import ChartCard from "../ChartCard";
 import styles from "./StopItem.module.css";
 
 export interface StopItemProps {
@@ -17,9 +20,41 @@ export interface StopItemProps {
 }
 
 /**
- * Renders a single Stop. Owns only its own expand/collapse boolean
+ * Renders the expanded detail content for a Stop/block (Requirement 13).
+ * Dispatches to a type-specific component for each recognized block type
+ * (Requirement 13.2); any other `type` — missing, unrecognized, or the
+ * plain `"stop"` type itself — falls back to the default Stop-style detail
+ * rendering (description/location/notes) (Requirement 13.3).
+ */
+function StopDetails({ stop }: { stop: Stop }) {
+  if (isCostBlock(stop)) return <CostCard block={stop} />;
+  if (isChecklistBlock(stop)) return <ChecklistCard block={stop} />;
+  if (isChartBlock(stop)) return <ChartCard block={stop} />;
+
+  return (
+    <div className={styles.details}>
+      {stop.description ? <p className={styles.detailField}>{stop.description}</p> : null}
+      {stop.location ? (
+        <p className={styles.detailField}>
+          <span className={styles.detailLabel}>Location: </span>
+          {stop.location}
+        </p>
+      ) : null}
+      {stop.notes ? (
+        <p className={styles.detailField}>
+          <span className={styles.detailLabel}>Notes: </span>
+          {stop.notes}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Renders a single Stop/block. Owns only its own expand/collapse boolean
  * (Requirement 6.2/6.3): collapsed by default, showing title + time;
- * expanded shows title, time, description, location, and notes.
+ * expanded shows title, time, and the type-specific detail content from
+ * `StopDetails` above (Requirement 13.2/13.3).
  *
  * Also renders remove and move-up/move-down controls (Requirement 6.4/6.5),
  * disabling move-up/move-down at the first/last boundary (Requirement 6.6).
@@ -71,23 +106,7 @@ function StopItem({ stop, isFirst = false, isLast = false, onRemove, onMoveUp, o
           </button>
         </div>
       </div>
-      {isExpanded ? (
-        <div className={styles.details}>
-          {stop.description ? <p className={styles.detailField}>{stop.description}</p> : null}
-          {stop.location ? (
-            <p className={styles.detailField}>
-              <span className={styles.detailLabel}>Location: </span>
-              {stop.location}
-            </p>
-          ) : null}
-          {stop.notes ? (
-            <p className={styles.detailField}>
-              <span className={styles.detailLabel}>Notes: </span>
-              {stop.notes}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+      {isExpanded ? <StopDetails stop={stop} /> : null}
     </li>
   );
 }

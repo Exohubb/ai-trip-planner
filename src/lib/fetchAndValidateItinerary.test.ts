@@ -58,7 +58,12 @@ describe("fetchAndValidateItinerary", () => {
 
     const result = await fetchAndValidateItinerary("A weekend in Paris", new AbortController().signal);
 
-    expect(result).toEqual({ ok: true, itinerary: body });
+    // A Stop with no `type` field validates as before, defaulting to the
+    // plain "stop" type (Requirement 13.1 backward compatibility).
+    expect(result).toEqual({
+      ok: true,
+      itinerary: { days: [{ id: 1, stops: [{ id: "s1", title: "Eiffel Tower", type: "stop" }] }] },
+    });
   });
 
   /** Validates: Requirements 4.9 */

@@ -96,4 +96,83 @@ describe("StopItem", () => {
     expect(screen.getByRole("button", { name: /move.*down/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /move.*up/i })).toBeEnabled();
   });
+
+  describe("block type dispatch (Requirement 13)", () => {
+    /** Validates: Requirements 13.3 */
+    it("renders the default Stop-style details for a stop with no type field", async () => {
+      const user = userEvent.setup();
+      render(<StopItem stop={fullStop} />);
+
+      await user.click(screen.getByRole("button", { expanded: false }));
+
+      expect(screen.getByText(/modern art wing/i)).toBeInTheDocument();
+    });
+
+    /** Validates: Requirements 13.2 */
+    it("renders CostCard for a cost block instead of the default Stop-style details", async () => {
+      const user = userEvent.setup();
+      const costStop: Stop = {
+        id: "cost-1",
+        type: "cost",
+        title: "Trip costs",
+        costItems: [{ label: "Flight", amount: 400 }],
+        currency: "USD",
+      };
+      render(<StopItem stop={costStop} />);
+
+      await user.click(screen.getByRole("button", { expanded: false }));
+
+      expect(screen.getByText("Flight")).toBeInTheDocument();
+      expect(screen.getByText(/USD 400/)).toBeInTheDocument();
+    });
+
+    /** Validates: Requirements 13.2 */
+    it("renders ChecklistCard for a checklist block instead of the default Stop-style details", async () => {
+      const user = userEvent.setup();
+      const checklistStop: Stop = {
+        id: "checklist-1",
+        type: "checklist",
+        title: "Packing list",
+        items: [{ label: "Passport", checked: true }],
+      };
+      render(<StopItem stop={checklistStop} />);
+
+      await user.click(screen.getByRole("button", { expanded: false }));
+
+      expect(screen.getByText("Passport")).toBeInTheDocument();
+    });
+
+    /** Validates: Requirements 13.2 */
+    it("renders ChartCard for a chart block instead of the default Stop-style details", async () => {
+      const user = userEvent.setup();
+      const chartStop: Stop = {
+        id: "chart-1",
+        type: "chart",
+        title: "Budget breakdown",
+        chartData: [{ label: "Food", value: 200 }],
+      };
+      render(<StopItem stop={chartStop} />);
+
+      await user.click(screen.getByRole("button", { expanded: false }));
+
+      expect(screen.getByText("Food")).toBeInTheDocument();
+      expect(screen.getByText("200")).toBeInTheDocument();
+    });
+
+    /** Validates: Requirements 13.3 */
+    it("falls back to the default Stop-style details for an unrecognized block type", async () => {
+      const user = userEvent.setup();
+      const unrecognizedStop: Stop = {
+        id: "poll-1",
+        type: "poll",
+        title: "Mystery block",
+        description: "This should render like a plain stop.",
+      };
+      render(<StopItem stop={unrecognizedStop} />);
+
+      await user.click(screen.getByRole("button", { expanded: false }));
+
+      expect(screen.getByText(/should render like a plain stop/i)).toBeInTheDocument();
+    });
+  });
 });

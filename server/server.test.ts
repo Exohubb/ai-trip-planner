@@ -78,8 +78,10 @@ describe("POST /api/itinerary", () => {
     const body = await res.json();
 
     expect(res.status).toBe(200);
+    // A Stop with no `type` field validates as before, defaulting to the
+    // plain "stop" type (Requirement 13.1 backward compatibility).
     expect(body).toEqual({
-      days: [{ id: 1, stops: [{ id: "stop-1", title: "Eiffel Tower", time: "9am" }] }],
+      days: [{ id: 1, stops: [{ id: "stop-1", title: "Eiffel Tower", time: "9am", type: "stop" }] }],
     });
   });
 
