@@ -32,21 +32,27 @@ describe("buildItineraryPrompt", () => {
     expect(schema.type).toBe("OBJECT");
     expect(schema.required).toContain("days");
 
+    // Note: `maxItems` is intentionally omitted from the Gemini responseSchema
+    // (Gemini's structured-output dialect rejects it with a 400 for this model
+    // family) — the 30-day/20-stop limits are still enforced by ItinerarySchema's
+    // own .max() calls when validating whatever Gemini actually returns.
     const daysSchema = schema.properties.days;
     expect(daysSchema.type).toBe("ARRAY");
-    expect(daysSchema.maxItems).toBe(30);
+    expect("maxItems" in daysSchema).toBe(false);
 
     const dayItemSchema = daysSchema.items;
     expect(dayItemSchema.required).toEqual(["id", "stops"]);
 
     const stopsSchema = dayItemSchema.properties.stops;
     expect(stopsSchema.type).toBe("ARRAY");
-    expect(stopsSchema.maxItems).toBe(20);
+    expect("maxItems" in stopsSchema).toBe(false);
 
     const stopItemSchema = stopsSchema.items;
-    expect(stopItemSchema.required).toEqual(["title"]);
+    // Every stop must declare both "id" and "title" — StopSchema requires a
+    // string "id" with no default, so Gemini must be asked to generate one.
+    expect(stopItemSchema.required).toEqual(["id", "title"]);
     expect(Object.keys(stopItemSchema.properties)).toEqual(
-      expect.arrayContaining(["title", "time", "description", "location", "notes"]),
+      expect.arrayContaining(["id", "title", "time", "description", "location", "notes"]),
     );
   });
 

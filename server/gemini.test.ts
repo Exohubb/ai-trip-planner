@@ -223,4 +223,35 @@ describe("streamLLM", () => {
 
     expect(deltas).toEqual(['{"days":[]}']);
   });
+
+  it("parses frames separated by \\r\\n\\r\\n (the actual separator Gemini's REST endpoint sends), not just \\n\\n", async () => {
+    const crlfFrame = (text: string) =>
+      `data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text }] } }] })}\r\n\r\n`;
+    const fetchMock = vi.fn().mockResolvedValue(
+      makeSseResponse([crlfFrame('{"days":'), crlfFrame('[{"id":1,"stops":[]}]}')]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const deltas: string[] = [];
+    for await (const delta of streamLLM(prompt)) {
+      deltas.push(delta);
+    }
+
+    expect(deltas).toEqual(['{"days":', '[{"id":1,"stops":[]}]}']);
+  });
+
+  it("yields the final frame even when the stream ends without a trailing blank-line separator after it", async () => {
+    // No `\n\n`/`\r\n\r\n` after the last frame — the reader reports `done`
+    // with this text still sitting unprocessed in the internal buffer.
+    const finalFrameNoTrailingSeparator = sseFrame('{"days":[]}').replace(/\n\n$/, "");
+    const fetchMock = vi.fn().mockResolvedValue(makeSseResponse([finalFrameNoTrailingSeparator]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const deltas: string[] = [];
+    for await (const delta of streamLLM(prompt)) {
+      deltas.push(delta);
+    }
+
+    expect(deltas).toEqual(['{"days":[]}']);
+  });
 });

@@ -12,7 +12,8 @@ import type { Itinerary } from "../shared/itinerarySchema.ts";
 const SYSTEM_INSTRUCTION = `Return ONLY a JSON object matching the provided schema. Do not include any
 prose, markdown, or explanation outside the JSON. "days" must be an array,
 ordered by day number, of at most 30 entries. Each day's "stops" must be an
-array of at most 20 entries. Every stop must have a non-empty "title".`;
+array of at most 20 entries. Every stop must have a unique, non-empty "id"
+string and a non-empty "title".`;
 
 /**
  * Gemini's structured-output schema dialect (a subset of OpenAPI/JSON Schema).
@@ -23,7 +24,6 @@ const ITINERARY_RESPONSE_SCHEMA = {
   properties: {
     days: {
       type: "ARRAY",
-      maxItems: 30,
       items: {
         type: "OBJECT",
         properties: {
@@ -33,17 +33,20 @@ const ITINERARY_RESPONSE_SCHEMA = {
           },
           stops: {
             type: "ARRAY",
-            maxItems: 20,
             items: {
               type: "OBJECT",
               properties: {
+                id: {
+                  type: "STRING",
+                  description: "A unique identifier for this stop, e.g. \"stop-1\".",
+                },
                 title: { type: "STRING" },
                 time: { type: "STRING" },
                 description: { type: "STRING" },
                 location: { type: "STRING" },
                 notes: { type: "STRING" },
               },
-              required: ["title"],
+              required: ["id", "title"],
             },
           },
         },
@@ -105,7 +108,8 @@ apply the follow-up instruction's requested changes, and otherwise preserve
 the existing days and stops as they are. Do not include any prose, markdown,
 or explanation outside the JSON. "days" must be an array, ordered by day
 number, of at most 30 entries. Each day's "stops" must be an array of at
-most 20 entries. Every stop must have a non-empty "title".`;
+most 20 entries. Every stop must have a unique, non-empty "id" string and a
+non-empty "title".`;
 
 /**
  * Builds the full request body for Gemini's `generateContent` endpoint for a

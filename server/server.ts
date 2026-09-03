@@ -225,7 +225,10 @@ app.post("/api/itinerary/stream", async (req, res) => {
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(accumulatedText);
-  } catch {
+  } catch (err) {
+    // Log server-side only; never forward Gemini's raw accumulated text to the client.
+    // eslint-disable-next-line no-console
+    console.error("Gemini stream response was not valid JSON:", err);
     sendEvent("error", { error: "invalid_response" });
     res.end();
     return;

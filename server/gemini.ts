@@ -1,6 +1,6 @@
 import type { GeminiPromptPayload } from "./promptBuilder.ts";
 
-const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_MODEL = "gemini-flash-lite-latest";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 // Gemini's streaming REST endpoint (Requirement 14.1): same model, `:streamGenerateContent`
 // action, with `alt=sse` so the response body is delivered as Server-Sent Events (one
@@ -124,6 +124,33 @@ export async function* streamLLM(prompt: GeminiPromptPayload): AsyncGenerator<st
     const decoder = new TextDecoder();
     let buffer = "";
 
+    // SSE frames are separated by a blank line. The server sends "\r\n\r\n"
+    // as that separator (not just "\n\n"), so frame-splitting must tolerate
+    // an optional trailing "\r" on every line — both here and when
+    // splitting an individual frame into its own lines below.
+    function extractFrames(text: string): { frames: string[]; rest: string } {
+      const frames = text.split(/\r?\n\r?\n/);
+      const rest = frames.pop() ?? "";
+      return { frames, rest };
+    }
+
+    function processFrame(frame: string): string | undefined {
+      const dataLine = frame.split(/\r?\n/).find((line) => line.startsWith("data:"));
+      if (!dataLine) return undefined;
+      const jsonText = dataLine.slice("data:".length).trim();
+      if (!jsonText || jsonText === "[DONE]") return undefined;
+
+      let parsed: GeminiGenerateContentResponse;
+      try {
+        parsed = JSON.parse(jsonText);
+      } catch {
+        return undefined; // skip any frame that isn't valid JSON rather than aborting the whole stream
+      }
+
+      const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+      return typeof text === "string" && text.length > 0 ? text : undefined;
+    }
+
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -131,29 +158,24 @@ export async function* streamLLM(prompt: GeminiPromptPayload): AsyncGenerator<st
 
         buffer += decoder.decode(value, { stream: true });
 
-        // SSE frames are separated by a blank line; each frame's payload
-        // line is prefixed with "data: ".
-        const frames = buffer.split("\n\n");
-        buffer = frames.pop() ?? ""; // keep the last, possibly-incomplete frame buffered
+        const { frames, rest } = extractFrames(buffer);
+        buffer = rest; // keep the last, possibly-incomplete frame buffered
 
         for (const frame of frames) {
-          const dataLine = frame.split("\n").find((line) => line.startsWith("data:"));
-          if (!dataLine) continue;
-          const jsonText = dataLine.slice("data:".length).trim();
-          if (!jsonText || jsonText === "[DONE]") continue;
-
-          let parsed: GeminiGenerateContentResponse;
-          try {
-            parsed = JSON.parse(jsonText);
-          } catch {
-            continue; // skip any frame that isn't valid JSON rather than aborting the whole stream
-          }
-
-          const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (typeof text === "string" && text.length > 0) {
-            yield text;
-          }
+          const text = processFrame(frame);
+          if (text !== undefined) yield text;
         }
+      }
+
+      // The stream's final frame is not followed by another blank-line
+      // separator, so it's left sitting in `buffer` when `reader.read()`
+      // reports `done` above. Process it here rather than silently
+      // dropping it — this is what most reliably contains the response's
+      // closing `]}` and would otherwise leave the accumulated JSON
+      // truncated on every single request.
+      if (buffer.trim().length > 0) {
+        const text = processFrame(buffer);
+        if (text !== undefined) yield text;
       }
     } catch (err) {
       if (err instanceof GeminiCallError) throw err;
