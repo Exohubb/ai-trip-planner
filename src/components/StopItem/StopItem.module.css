@@ -15,7 +15,7 @@
   align-items: center;
   gap: var(--space-3);
   flex: 1;
-  min-width: 0;
+  min-width: 44px; /* Req 8.3: expand control keeps a 44x44 minimum touch target */
   min-height: 44px;
   padding: var(--space-3) var(--space-4);
   font-family: var(--font-family);
@@ -57,7 +57,9 @@
 
 .title {
   flex: 1;
+  min-width: 0; /* allow the title to shrink/wrap instead of forcing horizontal overflow on narrow viewports */
   font-weight: 600;
+  overflow-wrap: break-word; /* Req 8.1: long unbroken titles wrap instead of clipping/overflowing */
 }
 
 .time {

@@ -3,6 +3,7 @@ import TripInputForm from "./components/TripInputForm";
 import ResultArea from "./components/ResultArea";
 import { useItineraryRequest } from "./hooks/useItineraryRequest";
 import { isBlankTripDescription, TRIP_DESCRIPTION_REQUIRED_MESSAGE } from "./lib/validateTripDescription";
+import styles from "./App.module.css";
 
 function App() {
   // Live-typed textarea value. Deliberately separate from the hook's
@@ -36,7 +37,7 @@ function App() {
   }
 
   return (
-    <main>
+    <main className={styles.app}>
       <h1>AI Trip Planner</h1>
       <TripInputForm
         value={inputValue}

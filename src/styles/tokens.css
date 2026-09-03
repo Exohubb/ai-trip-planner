@@ -42,6 +42,17 @@
   box-sizing: border-box;
 }
 
+/* Root container overflow guard (Req 8.4): box-sizing: border-box above
+   plus max-width: 100% here on the document root and mount point ensures
+   no element can force horizontal scrolling of the page body, even if a
+   child briefly renders wider content (e.g. a long unbroken Stop title). */
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--font-family);

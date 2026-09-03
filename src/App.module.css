@@ -1,0 +1,18 @@
+/* Root app container (Requirement 8). Mobile-first: full-width single
+   column by default, constrained to border-box sizing (global, tokens.css)
+   plus max-width: 100% here so no descendant can push the page wider than
+   the viewport (Req 8.4). A small horizontal padding keeps content off the
+   screen edges on narrow viewports without affecting layout structure. */
+.app {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .app {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: var(--space-6);
+  }
+}
