@@ -201,6 +201,37 @@ describe("ResultArea", () => {
     expect(screen.queryByText("Museum visit")).not.toBeInTheDocument();
   });
 
+  /** Validates: Requirements 15.1 */
+  it("renders the RefinementForm when onRefine is provided and a valid itinerary is displayed", () => {
+    render(
+      <ResultArea
+        status="success"
+        itinerary={populatedItinerary}
+        errorMessage={null}
+        requestId={1}
+        {...defaultRetryProps}
+        onRefine={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText(/ask for a change/i)).toBeInTheDocument();
+  });
+
+  /** Validates: Requirements 15.1 */
+  it("does not render the RefinementForm when onRefine is not provided", () => {
+    render(
+      <ResultArea
+        status="success"
+        itinerary={populatedItinerary}
+        errorMessage={null}
+        requestId={1}
+        {...defaultRetryProps}
+      />,
+    );
+
+    expect(screen.queryByLabelText(/ask for a change/i)).not.toBeInTheDocument();
+  });
+
   /** Validates: Requirement 14.2 */
   it("shows the streaming indicator alongside a retained itinerary during a background stream", () => {
     render(

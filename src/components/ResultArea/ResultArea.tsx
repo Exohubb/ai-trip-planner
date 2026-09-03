@@ -8,6 +8,7 @@ import ItineraryView from "../ItineraryView";
 import RetryBanner from "../RetryBanner";
 import StreamingIndicator from "../StreamingIndicator";
 import DayCard from "../DayCard";
+import RefinementForm from "../RefinementForm";
 
 export interface ResultAreaProps {
   status: RequestStatus;
@@ -32,6 +33,12 @@ export interface ResultAreaProps {
   partialDays?: Day[];
   /** True when the current error resulted from an interrupted stream (Req 14.3). */
   streamIncomplete?: boolean;
+  /** Submits a follow-up refinement instruction against the displayed itinerary (Req 15.1/15.2). */
+  onRefine?: (instruction: string) => void;
+  /** Disables the refinement form's controls while a refinement request is in flight (Req 15.3). */
+  isRefining?: boolean;
+  /** Plain-language message shown when the last refinement request failed validation (Req 15.5). */
+  refinementError?: string | null;
 }
 
 /** Read-only preview of the Days streamed in so far, with no edit controls wired up yet. */
@@ -62,6 +69,9 @@ function ResultArea({
   retryValidationMessage,
   partialDays = [],
   streamIncomplete = false,
+  onRefine,
+  isRefining = false,
+  refinementError = null,
 }: ResultAreaProps) {
   if (status === "idle") {
     return <EmptyState />;
@@ -141,6 +151,9 @@ function ResultArea({
           />
         ) : null}
         <ItineraryView key={requestId} days={itinerary.days} />
+        {onRefine ? (
+          <RefinementForm onSubmit={onRefine} disabled={isRefining} error={refinementError} />
+        ) : null}
       </>
     );
   }

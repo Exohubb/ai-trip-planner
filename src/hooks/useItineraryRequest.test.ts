@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useItineraryRequest } from "./useItineraryRequest";
 import { fetchAndValidateItinerary, type ParseResult } from "../lib/fetchAndValidateItinerary";
 import { streamItinerary, type StreamItineraryCallbacks, type StreamOutcome } from "../lib/streamItinerary";
+import { fetchAndValidateRefinement, type RefinementResult } from "../lib/fetchAndValidateRefinement";
 import type { Day, Itinerary } from "@shared/itinerarySchema";
 
 vi.mock("../lib/fetchAndValidateItinerary", () => ({
@@ -13,8 +14,13 @@ vi.mock("../lib/streamItinerary", () => ({
   streamItinerary: vi.fn(),
 }));
 
+vi.mock("../lib/fetchAndValidateRefinement", () => ({
+  fetchAndValidateRefinement: vi.fn(),
+}));
+
 const mockedFetchAndValidateItinerary = vi.mocked(fetchAndValidateItinerary);
 const mockedStreamItinerary = vi.mocked(streamItinerary);
+const mockedFetchAndValidateRefinement = vi.mocked(fetchAndValidateRefinement);
 
 function makeItinerary(label: string): Itinerary {
   return { days: [{ id: 1, stops: [{ id: "s1", title: label }] }] };
@@ -33,6 +39,7 @@ describe("useItineraryRequest", () => {
   beforeEach(() => {
     mockedFetchAndValidateItinerary.mockReset();
     mockedStreamItinerary.mockReset();
+    mockedFetchAndValidateRefinement.mockReset();
   });
 
   afterEach(() => {
@@ -387,6 +394,143 @@ describe("useItineraryRequest", () => {
       });
       act(() => {
         result.current.submitStreaming("second trip");
+      });
+
+      expect(capturedSignals[0]?.aborted).toBe(true);
+      expect(capturedSignals[1]?.aborted).toBe(false);
+    });
+  });
+
+  describe("submitRefinement", () => {
+    async function getToSuccess(result: ReturnType<typeof renderHook<ReturnType<typeof useItineraryRequest>, unknown>>["result"]) {
+      const first = deferred<ParseResult>();
+      mockedFetchAndValidateItinerary.mockReturnValueOnce(first.promise);
+      act(() => {
+        result.current.submit("A trip to Rome");
+      });
+      const itinerary = makeItinerary("Initial result");
+      await act(async () => {
+        first.resolve({ ok: true, itinerary });
+        await Promise.resolve();
+      });
+      await waitFor(() => expect(result.current.status).toBe("success"));
+      return itinerary;
+    }
+
+    /** Validates: Requirements 15.2 */
+    it("calls fetchAndValidateRefinement with the current itinerary and instruction", async () => {
+      const { result } = renderHook(() => useItineraryRequest());
+      const itinerary = await getToSuccess(result);
+
+      const refinement = deferred<RefinementResult>();
+      mockedFetchAndValidateRefinement.mockReturnValueOnce(refinement.promise);
+
+      act(() => {
+        result.current.submitRefinement("Add a museum on day 2");
+      });
+
+      expect(mockedFetchAndValidateRefinement).toHaveBeenCalledWith(
+        itinerary,
+        "Add a museum on day 2",
+        expect.anything(),
+      );
+      expect(result.current.isRefining).toBe(true);
+    });
+
+    /** Validates: Requirements 15.6 */
+    it("replaces the itinerary on a successful refinement", async () => {
+      const { result } = renderHook(() => useItineraryRequest());
+      await getToSuccess(result);
+
+      const refinement = deferred<RefinementResult>();
+      mockedFetchAndValidateRefinement.mockReturnValueOnce(refinement.promise);
+
+      act(() => {
+        result.current.submitRefinement("Add a museum on day 2");
+      });
+
+      const updatedItinerary = makeItinerary("Updated result");
+      await act(async () => {
+        refinement.resolve({ ok: true, itinerary: updatedItinerary });
+        await Promise.resolve();
+      });
+
+      await waitFor(() => expect(result.current.isRefining).toBe(false));
+      expect(result.current.status).toBe("success");
+      expect(result.current.itinerary).toEqual(updatedItinerary);
+      expect(result.current.refinementError).toBeNull();
+    });
+
+    /** Validates: Requirements 15.5 */
+    it("retains the previous itinerary unchanged and sets refinementError on failure", async () => {
+      const { result } = renderHook(() => useItineraryRequest());
+      const itinerary = await getToSuccess(result);
+
+      const refinement = deferred<RefinementResult>();
+      mockedFetchAndValidateRefinement.mockReturnValueOnce(refinement.promise);
+
+      act(() => {
+        result.current.submitRefinement("Add a museum on day 2");
+      });
+
+      await act(async () => {
+        refinement.resolve({ ok: false, reason: "invalid_shape" });
+        await Promise.resolve();
+      });
+
+      await waitFor(() => expect(result.current.isRefining).toBe(false));
+      expect(result.current.status).toBe("success");
+      expect(result.current.itinerary).toEqual(itinerary);
+      expect(result.current.refinementError).toMatch(/trouble understanding/i);
+    });
+
+    /** Validates: Requirements 15.3, 5.1-5.4 */
+    it("discards a stale refinement outcome if a newer request has since been submitted", async () => {
+      const { result } = renderHook(() => useItineraryRequest());
+      const itinerary = await getToSuccess(result);
+
+      const firstRefinement = deferred<RefinementResult>();
+      mockedFetchAndValidateRefinement.mockReturnValueOnce(firstRefinement.promise);
+
+      act(() => {
+        result.current.submitRefinement("first instruction");
+      });
+
+      // A newer submit (regular, non-refinement) supersedes the in-flight refinement.
+      const second = deferred<ParseResult>();
+      mockedFetchAndValidateItinerary.mockReturnValueOnce(second.promise);
+      act(() => {
+        result.current.submit("A newer trip description");
+      });
+
+      await act(async () => {
+        firstRefinement.resolve({ ok: true, itinerary: makeItinerary("Stale refinement result") });
+        await Promise.resolve();
+      });
+
+      // The stale refinement outcome must not overwrite state; the newer submit's loading state holds.
+      expect(result.current.status).toBe("loading");
+      expect(result.current.itinerary).toEqual(itinerary);
+    });
+
+    /** Validates: Requirements 15.3, 5.2 */
+    it("aborts the previous refinement's signal when a new refinement is submitted", async () => {
+      const { result } = renderHook(() => useItineraryRequest());
+      await getToSuccess(result);
+
+      const capturedSignals: AbortSignal[] = [];
+      mockedFetchAndValidateRefinement.mockImplementation((_itinerary, _instruction, signal) => {
+        capturedSignals.push(signal);
+        return new Promise(() => {
+          // never resolves
+        });
+      });
+
+      act(() => {
+        result.current.submitRefinement("first instruction");
+      });
+      act(() => {
+        result.current.submitRefinement("second instruction");
       });
 
       expect(capturedSignals[0]?.aborted).toBe(true);

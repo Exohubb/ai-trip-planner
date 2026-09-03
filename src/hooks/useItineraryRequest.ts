@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef } from "react";
 import type { Day, Itinerary } from "@shared/itinerarySchema";
 import { fetchAndValidateItinerary, type ParseResult } from "../lib/fetchAndValidateItinerary";
 import { streamItinerary, type StreamOutcome } from "../lib/streamItinerary";
+import { fetchAndValidateRefinement } from "../lib/fetchAndValidateRefinement";
 
 // Mirrors the backend's own 30s timeout on its Gemini call (server/gemini.ts),
 // so the frontend never waits indefinitely on a hung backend request (Req 2.8, 4.6).
@@ -28,6 +29,16 @@ export interface RequestState {
   // 14.3), so the UI knows to show `partialDays` alongside an "incomplete
   // itinerary" message instead of the regular full-page ErrorState.
   streamIncomplete: boolean;
+  // True while a refinement request (Requirement 15) is in flight. Kept
+  // separate from `status` because a refinement failure must never replace
+  // the displayed itinerary with a full-page error state (Req 15.5) — it's
+  // a non-blocking, additive piece of state layered on top of an already
+  // "success" status.
+  isRefining: boolean;
+  // Plain-language message set when the most recent refinement request
+  // failed parsing/validation (Req 15.5). Cleared on the next successful
+  // refinement submit/outcome. Does not affect `errorMessage`/`status`.
+  refinementError: string | null;
 }
 
 export type Action =
@@ -36,7 +47,10 @@ export type Action =
   | { type: "STREAM_CHUNK"; requestId: number; newDays: Day[] }
   | { type: "SUCCESS"; requestId: number; itinerary: Itinerary }
   | { type: "FAILURE"; requestId: number; message: string }
-  | { type: "STREAM_FAILURE"; requestId: number; message: string };
+  | { type: "STREAM_FAILURE"; requestId: number; message: string }
+  | { type: "SUBMIT_REFINEMENT"; requestId: number }
+  | { type: "REFINEMENT_SUCCESS"; requestId: number; itinerary: Itinerary }
+  | { type: "REFINEMENT_FAILURE"; requestId: number; message: string };
 
 const initialState: RequestState = {
   status: "idle",
@@ -47,6 +61,8 @@ const initialState: RequestState = {
   requestId: 0,
   partialDays: [],
   streamIncomplete: false,
+  isRefining: false,
+  refinementError: null,
 };
 
 function reducer(state: RequestState, action: Action): RequestState {
@@ -107,6 +123,35 @@ function reducer(state: RequestState, action: Action): RequestState {
         // already-rendered Day/Stop entries stay visible (Requirement 14.3).
         streamIncomplete: true,
       };
+    case "SUBMIT_REFINEMENT":
+      return {
+        ...state,
+        isRefining: true,
+        refinementError: null,
+      };
+    case "REFINEMENT_SUCCESS":
+      // Replaces the displayed itinerary only on successful validation
+      // (Req 15.6). `status` stays "success" and `requestId` is bumped so
+      // ItineraryView resets its local edit state for the updated itinerary,
+      // same as any other successful fetch.
+      return {
+        ...state,
+        status: "success",
+        itinerary: action.itinerary,
+        requestId: action.requestId,
+        isRefining: false,
+        refinementError: null,
+        errorMessage: null,
+        isBackground: false,
+      };
+    case "REFINEMENT_FAILURE":
+      // The previously displayed itinerary is retained unchanged (Req 15.5);
+      // only the non-blocking `refinementError` is set.
+      return {
+        ...state,
+        isRefining: false,
+        refinementError: action.message,
+      };
     default:
       return state;
   }
@@ -155,6 +200,16 @@ export interface UseItineraryRequestResult extends RequestState {
    * chunks/outcome it produces are discarded (Requirement 14.4).
    */
   submitStreaming: (description: string) => void;
+  /**
+   * Submits a follow-up refinement instruction against the currently
+   * displayed itinerary (Requirement 15). Goes through the same
+   * request-id/AbortController staleness pattern as `submit`/`submitStreaming`
+   * (Req 15.3): a subsequent submit/submitStreaming/submitRefinement call
+   * marks this one stale, and its outcome is discarded if it arrives late.
+   * On success, replaces `itinerary`; on failure, `itinerary` is left
+   * untouched and `refinementError` is set instead (Req 15.5/15.6).
+   */
+  submitRefinement: (instruction: string) => void;
 }
 
 /**
@@ -219,6 +274,32 @@ export function useItineraryRequest(): UseItineraryRequestResult {
     });
   }, []);
 
+  const submitRefinement = useCallback(
+    (instruction: string) => {
+      if (!state.itinerary) return; // nothing to refine against; UI only shows this control when itinerary is non-null
+
+      const requestId = ++latestRequestId.current; // marks all prior requests (incl. any other refinement) stale (Req 15.3)
+      abortControllerRef.current?.abort(); // cancel previous in-flight fetch (Req 5.2, 15.3)
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      dispatch({ type: "SUBMIT_REFINEMENT", requestId });
+
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+      fetchAndValidateRefinement(state.itinerary, instruction, controller.signal).then((result) => {
+        clearTimeout(timeoutId);
+        if (requestId !== latestRequestId.current) return; // stale outcome discarded (Req 15.3)
+
+        if (result.ok) {
+          dispatch({ type: "REFINEMENT_SUCCESS", requestId, itinerary: result.itinerary });
+        } else {
+          dispatch({ type: "REFINEMENT_FAILURE", requestId, message: toUserMessage(result.reason) });
+        }
+      });
+    },
+    [state.itinerary]
+  );
+
   // Abort any in-flight request if the hook's consumer unmounts.
   useEffect(() => {
     return () => {
@@ -226,5 +307,5 @@ export function useItineraryRequest(): UseItineraryRequestResult {
     };
   }, []);
 
-  return { ...state, submit, submitStreaming };
+  return { ...state, submit, submitStreaming, submitRefinement };
 }

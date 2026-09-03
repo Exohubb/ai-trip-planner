@@ -126,6 +126,138 @@ describe("POST /api/itinerary", () => {
   });
 });
 
+describe("POST /api/itinerary/refine", () => {
+  let server: Server;
+  let baseUrl: string;
+  const originalApiKey = process.env.GEMINI_API_KEY;
+
+  const validItinerary = {
+    days: [{ id: 1, stops: [{ id: "s1", title: "Eiffel Tower", type: "stop" }] }],
+  };
+
+  beforeAll(async () => {
+    server = app.listen(0);
+    await new Promise<void>((resolve) => server.once("listening", resolve));
+    const address = server.address();
+    const port = typeof address === "object" && address ? address.port : 0;
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  beforeEach(() => {
+    process.env.GEMINI_API_KEY = "test-api-key";
+  });
+
+  afterEach(() => {
+    process.env.GEMINI_API_KEY = originalApiKey;
+    mockedCallLLM.mockReset();
+    mockedStreamLLM.mockReset();
+  });
+
+  async function postRefine(body: unknown) {
+    return fetch(`${baseUrl}/api/itinerary/refine`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("responds 400 missing_instruction when instruction is missing/whitespace-only, without calling callLLM", async () => {
+    const res = await postRefine({ currentItinerary: validItinerary, instruction: "   " });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body).toEqual({ error: "missing_instruction" });
+    expect(mockedCallLLM).not.toHaveBeenCalled();
+  });
+
+  it("responds 400 instruction_too_long when instruction exceeds 1000 characters, without calling callLLM", async () => {
+    const res = await postRefine({ currentItinerary: validItinerary, instruction: "a".repeat(1001) });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body).toEqual({ error: "instruction_too_long" });
+    expect(mockedCallLLM).not.toHaveBeenCalled();
+  });
+
+  it("responds 400 invalid_current_itinerary when currentItinerary fails schema validation, without calling callLLM", async () => {
+    const res = await postRefine({ currentItinerary: { days: "not-an-array" }, instruction: "Add a museum" });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body).toEqual({ error: "invalid_current_itinerary" });
+    expect(mockedCallLLM).not.toHaveBeenCalled();
+  });
+
+  it("responds 500 server_misconfigured when GEMINI_API_KEY is missing, without calling callLLM", async () => {
+    delete process.env.GEMINI_API_KEY;
+
+    const res = await postRefine({ currentItinerary: validItinerary, instruction: "Add a museum" });
+    const body = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(body).toEqual({ error: "server_misconfigured" });
+    expect(mockedCallLLM).not.toHaveBeenCalled();
+  });
+
+  it("responds 502 upstream_error when callLLM throws", async () => {
+    mockedCallLLM.mockRejectedValue(new Error("boom"));
+
+    const res = await postRefine({ currentItinerary: validItinerary, instruction: "Add a museum" });
+    const body = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(body).toEqual({ error: "upstream_error" });
+  });
+
+  it("responds 502 invalid_response when Gemini's text is not valid JSON", async () => {
+    mockedCallLLM.mockResolvedValue("not valid json {{{");
+
+    const res = await postRefine({ currentItinerary: validItinerary, instruction: "Add a museum" });
+    const body = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(body).toEqual({ error: "invalid_response" });
+  });
+
+  it("responds 502 invalid_response when the updated JSON fails ItinerarySchema validation", async () => {
+    // Missing required "title" on the stop.
+    mockedCallLLM.mockResolvedValue(JSON.stringify({ days: [{ id: 1, stops: [{ time: "9am" }] }] }));
+
+    const res = await postRefine({ currentItinerary: validItinerary, instruction: "Add a museum" });
+    const body = await res.json();
+
+    expect(res.status).toBe(502);
+    expect(body).toEqual({ error: "invalid_response" });
+  });
+
+  it("responds 200 with the updated, validated itinerary on a well-formed Gemini response", async () => {
+    mockedCallLLM.mockResolvedValue(
+      JSON.stringify({
+        days: [
+          { id: 1, stops: [{ id: "s1", title: "Eiffel Tower" }] },
+          { id: 2, stops: [{ id: "s2", title: "Louvre Museum" }] },
+        ],
+      }),
+    );
+
+    const res = await postRefine({ currentItinerary: validItinerary, instruction: "Add a museum on day 2" });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body).toEqual({
+      days: [
+        { id: 1, stops: [{ id: "s1", title: "Eiffel Tower", type: "stop" }] },
+        { id: 2, stops: [{ id: "s2", title: "Louvre Museum", type: "stop" }] },
+      ],
+    });
+    expect(mockedCallLLM).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("POST /api/itinerary/stream", () => {
   let server: Server;
   let baseUrl: string;

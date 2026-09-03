@@ -17,6 +17,7 @@ function App() {
   const [retryValidationMessage, setRetryValidationMessage] = useState<string | null>(null);
   const {
     submitStreaming,
+    submitRefinement,
     status,
     itinerary,
     errorMessage,
@@ -25,6 +26,8 @@ function App() {
     isBackground,
     partialDays,
     streamIncomplete,
+    isRefining,
+    refinementError,
   } = useItineraryRequest();
 
   // The main submit/retry/regenerate flows all go through the streaming
@@ -70,6 +73,9 @@ function App() {
         retryValidationMessage={retryValidationMessage}
         partialDays={partialDays}
         streamIncomplete={streamIncomplete}
+        onRefine={submitRefinement}
+        isRefining={isRefining}
+        refinementError={refinementError}
       />
     </main>
   );
