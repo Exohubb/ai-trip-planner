@@ -4,6 +4,9 @@ dist/
 build/
 *.local
 
+# Local login-wall account store (plain-text demo credentials)
+server/data/
+
 # Editor/OS
 .DS_Store
 

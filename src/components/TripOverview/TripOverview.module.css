@@ -1,0 +1,303 @@
+.overview {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  animation: rise var(--transition-slow) both;
+}
+
+.cover {
+  position: relative;
+  min-height: 240px;
+  overflow: hidden;
+  background: var(--cover, #1e1b4b);
+}
+
+.coverImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: kenburns 18s ease-out both;
+}
+
+/* Decorative pattern for AI trips without a photo: dashed flight route + glow. */
+.coverPattern {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 85% 20%, rgba(253, 230, 138, 0.55), transparent 35%),
+    radial-gradient(circle at 10% 90%, rgba(244, 114, 182, 0.45), transparent 40%),
+    repeating-radial-gradient(circle at 120% 140%, transparent 0 46px, rgba(255, 255, 255, 0.12) 46px 48px);
+}
+
+.coverShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(10, 14, 31, 0.1) 0%, rgba(10, 14, 31, 0.78) 100%);
+}
+
+.coverContent {
+  position: absolute;
+  inset: auto 0 0;
+  padding: var(--space-5) clamp(var(--space-5), 3vw, var(--space-6));
+  color: #ffffff;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.title {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: clamp(1.75rem, 4vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.35);
+}
+
+.destination {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5) clamp(var(--space-5), 3vw, var(--space-6)) var(--space-6);
+}
+
+.summary {
+  max-width: 820px;
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.stat {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  transition:
+    transform var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.stat:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+
+.statWide {
+  grid-column: span 2;
+}
+
+@media (max-width: 479px) {
+  .statWide {
+    grid-column: auto;
+  }
+}
+
+.stat dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stat dt svg {
+  color: var(--color-accent);
+}
+
+.stat dd {
+  margin: 6px 0 0;
+  color: var(--color-text);
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat dd small {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.stat .statText {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.action,
+.primaryAction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.action {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.action:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.primaryAction {
+  border: none;
+  background: var(--gradient-brand);
+  color: #ffffff;
+  box-shadow: 0 10px 22px -12px rgba(126, 34, 206, 0.9);
+}
+
+.primaryAction:hover {
+  transform: translateY(-1px);
+}
+
+/* ---------- Sticky day jump links ---------- */
+
+.dayNav {
+  position: sticky;
+  top: calc(var(--nav-height) + 8px);
+  z-index: 5;
+  display: flex;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-2);
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(12px);
+  scrollbar-width: none;
+}
+
+.dayLink {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: 0 var(--space-4) 0 6px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.dayLink:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.dayLink[aria-current="true"] {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+.dayLinkNumber {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.dayLinkText {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes kenburns {
+  from {
+    transform: scale(1.12);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coverImage {
+    animation: none;
+  }
+}
+
+@media print {
+  .overview {
+    box-shadow: none;
+  }
+}

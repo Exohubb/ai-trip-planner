@@ -1,4 +1,5 @@
 import type { CostBlock } from "@shared/itinerarySchema";
+import { formatAmount } from "../../lib/stopCategory";
 import styles from "./CostCard.module.css";
 
 export interface CostCardProps {
@@ -21,10 +22,7 @@ function CostCard({ block }: CostCardProps) {
           {block.costItems.map((item, index) => (
             <li key={`${item.label}-${index}`} className={styles.item}>
               <span className={styles.itemLabel}>{item.label}</span>
-              <span className={styles.itemAmount}>
-                {block.currency ? `${block.currency} ` : ""}
-                {item.amount}
-              </span>
+              <span className={styles.itemAmount}>{formatAmount(item.amount, block.currency)}</span>
             </li>
           ))}
         </ul>
@@ -32,8 +30,7 @@ function CostCard({ block }: CostCardProps) {
       {block.total !== undefined ? (
         <p className={styles.total}>
           <span className={styles.totalLabel}>Total: </span>
-          {block.currency ? `${block.currency} ` : ""}
-          {block.total}
+          <span>{formatAmount(block.total, block.currency)}</span>
         </p>
       ) : null}
     </div>

@@ -3,44 +3,86 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-7) var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 50% 0%, var(--color-danger-soft), transparent 70%),
+    var(--color-surface);
   text-align: center;
+  animation: shake 420ms ease both;
 }
 
 .icon {
-  display: inline-flex;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--color-danger-soft);
   color: var(--color-danger);
 }
 
 .text {
+  max-width: 520px;
   margin: 0;
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
   color: var(--color-text);
+  font-family: var(--font-family);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .retryButton {
-  min-width: 44px;
-  min-height: 44px;
-  padding: var(--space-2) var(--space-5);
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-on-primary);
-  background-color: var(--color-primary);
+  min-width: 140px;
+  min-height: 46px;
+  padding: 0 var(--space-5);
   border: none;
   border-radius: var(--radius);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: 700;
   cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.retryButton:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .retryButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+  cursor: progress;
+  opacity: 0.55;
 }
 
 .validationMessage {
   margin: 0;
+  color: var(--color-danger);
   font-family: var(--font-family);
   font-size: var(--font-size-sm);
-  color: var(--color-danger);
+  font-weight: 600;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .container {
+    animation: none;
+  }
 }

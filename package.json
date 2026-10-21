@@ -7,13 +7,14 @@
     "dev": "concurrently -n client,server -c blue,green \"npm:client\" \"npm:server\"",
     "start": "concurrently -n client,server -c blue,green \"npm:client\" \"npm:server\"",
     "client": "vite",
-    "server": "tsx watch --env-file=.env server/server.ts",
+    "server": "tsx watch --env-file-if-exists=.env server/server.ts",
     "build": "vite build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "express": "4.21.1",
+    "lucide-react": "1.61.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "zod": "^3.23.8"

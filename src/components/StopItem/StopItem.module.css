@@ -1,19 +1,60 @@
+/* One stop on a day's timeline: a category dot on the line + a card. */
 .container {
+  position: relative;
+  padding-left: 56px;
   list-style: none;
+  animation: stopIn var(--transition-slow) both;
+}
+
+.dot {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--color-surface);
+  border-radius: 50%;
+  background: var(--cat, var(--color-primary));
+  color: #ffffff;
+  box-shadow: 0 6px 14px -6px var(--cat, var(--color-primary));
+  transition: transform var(--transition-base);
+}
+
+.container:hover .dot,
+.expanded .dot {
+  transform: scale(1.08);
+}
+
+.card {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background-color: var(--color-surface);
-  transition: border-color var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+}
+
+.container:hover .card {
+  border-color: color-mix(in srgb, var(--cat, var(--color-primary)) 45%, var(--color-border));
+  box-shadow: var(--shadow-md);
+}
+
+.expanded .card {
+  border-color: color-mix(in srgb, var(--cat, var(--color-primary)) 60%, var(--color-border));
 }
 
 /* Reorder state-change animation (Req 17.1): briefly highlights a Stop's
    border right after its move-up/move-down control is activated. Bound to
-   `--transition-base`, so it's disabled/instant under
-   `prefers-reduced-motion: reduce` (Req 17.2) exactly like the
-   expand/collapse chevron/details animations above. Only the border
-   changes (not the background) so text contrast is unaffected. */
-.justMoved {
+   `--transition-base`, so it's instant under `prefers-reduced-motion`
+   (Req 17.2). Only the border changes so text contrast is unaffected. */
+.justMoved .card {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 25%, transparent);
 }
 
 .row {
@@ -23,42 +64,127 @@
 
 .summaryToggle {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: var(--space-3);
-  flex: 1;
-  min-width: 44px; /* Req 8.3: expand control keeps a 44x44 minimum touch target */
-  min-height: 44px;
+  min-width: 44px; /* Req 8.3: 44x44 minimum touch target */
+  min-height: 64px;
   padding: var(--space-3) var(--space-4);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: none;
+  color: var(--color-text);
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  color: var(--color-text);
-  background: none;
-  border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
   text-align: left;
+  cursor: pointer;
+}
+
+.summaryMain {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--cat, var(--color-primary)) 12%, transparent);
+  color: var(--color-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  min-width: 0; /* allow wrapping instead of horizontal overflow on narrow viewports */
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: break-word; /* Req 8.1: long unbroken titles wrap */
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.categoryChip,
+.price {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.categoryChip {
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.price {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-base);
+}
+
+/* Expand/collapse animation (Req 17.1), instant under reduced motion. */
+.expanded .chevron {
+  transform: rotate(180deg);
+  color: var(--color-text);
 }
 
 .controls {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
-  padding: 0 var(--space-2);
+  gap: 2px;
+  padding: 0 var(--space-2) 0 0;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.container:hover .controls,
+.controls:focus-within {
+  opacity: 1;
 }
 
 .controlButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
+  min-width: 40px;
   min-height: 44px;
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  color: var(--color-text-muted);
-  background: none;
   border: none;
   border-radius: var(--radius);
+  background: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-family);
   cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.controlButton:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.removeButton:hover:not(:disabled) {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 .controlButton:disabled {
@@ -66,54 +192,145 @@
   cursor: not-allowed;
 }
 
-.title {
-  flex: 1;
-  min-width: 0; /* allow the title to shrink/wrap instead of forcing horizontal overflow on narrow viewports */
-  font-weight: 600;
-  overflow-wrap: break-word; /* Req 8.1: long unbroken titles wrap instead of clipping/overflowing */
+@media (max-width: 479px) {
+  .container {
+    padding-left: 44px;
+  }
+
+  .dot {
+    width: 32px;
+    height: 32px;
+  }
+
+  .dot svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .row {
+    flex-direction: column;
+  }
+
+  .controls {
+    justify-content: flex-end;
+    padding: 0 var(--space-2) var(--space-1);
+    opacity: 1;
+  }
 }
 
-.time {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-}
+/* ---------- Expanded details ---------- */
 
-.chevron {
-  color: var(--color-text-muted);
-  display: inline-block;
-  transition: transform var(--transition-base);
-}
-
-/* Expand/collapse animation (Req 17.1): the chevron rotates into its
-   "expanded" orientation instead of just swapping glyphs instantly. Bound
-   to `--transition-base`, which `tokens.css` collapses to 0ms under
-   `prefers-reduced-motion: reduce` (Req 17.2), so this becomes an instant
-   state change with no motion for those users. */
-.chevronExpanded {
-  transform: rotate(90deg);
+.detailsWrap {
+  padding: 0 var(--space-4) var(--space-4);
+  animation: expand var(--transition-base) ease both;
 }
 
 .details {
-  padding: 0 var(--space-4) var(--space-4);
-  animation: expand var(--transition-base) ease;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border);
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.locationIcon {
+  color: var(--cat, var(--color-primary));
+}
+
+.mapLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: var(--space-1);
+  padding: 2px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.mapLink:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.tip {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-warning-soft);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.tipIcon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-warning);
+}
+
+/* "Location:" / "Notes:" labels stay for screen readers; icons carry them visually. */
+.detailLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.detailEmpty {
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 @keyframes expand {
   from {
     opacity: 0;
+    transform: translateY(-4px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
-.detailField {
-  margin: var(--space-2) 0 0;
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  color: var(--color-text);
-}
-
-.detailLabel {
-  font-weight: 600;
+@keyframes stopIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

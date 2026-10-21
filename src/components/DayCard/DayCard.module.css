@@ -1,28 +1,142 @@
 .container {
-  padding: var(--space-4);
+  scroll-margin-top: calc(var(--nav-height) + 72px);
+  padding: var(--space-5);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background-color: var(--color-bg);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  animation: dayIn var(--transition-slow) both;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.badge {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-brand);
+  color: #ffffff;
+  box-shadow: 0 12px 24px -14px rgba(126, 34, 206, 0.9);
+}
+
+.badgeLabel {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.badgeNumber {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.headingGroup {
+  flex: 1;
+  min-width: 0;
 }
 
 .heading {
-  margin: 0 0 var(--space-3);
+  margin: 0;
+  color: var(--color-accent);
   font-family: var(--font-family);
-  font-size: var(--font-size-lg);
-  color: var(--color-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
+.dayTitle {
+  margin: 2px 0 0;
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.summary {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+}
+
+.count {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* The vertical timeline line behind each stop's category dot. */
 .stopList {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
 }
 
+.stopList::before {
+  content: "";
+  position: absolute;
+  top: 24px;
+  bottom: 24px;
+  left: 19px;
+  width: 2px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(180deg, var(--color-border) 0 6px, transparent 6px 12px);
+}
+
+@media (max-width: 479px) {
+  .container {
+    padding: var(--space-4);
+  }
+
+  .stopList::before {
+    left: 15px;
+  }
+
+  .count {
+    display: none;
+  }
+}
+
 .noStops {
   margin: 0;
+  padding: var(--space-4);
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  color: var(--color-text-muted);
+  text-align: center;
+}
+
+@keyframes dayIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

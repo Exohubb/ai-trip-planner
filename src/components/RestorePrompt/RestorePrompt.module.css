@@ -1,55 +1,82 @@
 .container {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-6) var(--space-4);
-  text-align: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 40%, var(--color-border));
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 0% 0%, var(--color-primary-soft), transparent 60%),
+    var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  animation: slideDown var(--transition-slow) both;
 }
 
 .icon {
-  display: inline-flex;
-  color: var(--color-text-muted);
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--gradient-brand);
+  color: #ffffff;
 }
 
 .text {
+  flex: 1;
+  min-width: 220px;
   margin: 0;
+  color: var(--color-text);
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  color: var(--color-text);
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .actions {
   display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  justify-content: center;
+  gap: var(--space-2);
+}
+
+.restoreButton,
+.discardButton {
+  min-width: 110px;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
 }
 
 .restoreButton {
-  min-width: 44px;
-  min-height: 44px;
-  padding: var(--space-2) var(--space-5);
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-on-primary);
-  background-color: var(--color-primary);
   border: none;
-  border-radius: var(--radius);
-  cursor: pointer;
+  background: var(--gradient-brand);
+  color: #ffffff;
 }
 
 .discardButton {
-  min-width: 44px;
-  min-height: 44px;
-  padding: var(--space-2) var(--space-5);
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-text);
-  background-color: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  cursor: pointer;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.restoreButton:hover,
+.discardButton:hover {
+  transform: translateY(-1px);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

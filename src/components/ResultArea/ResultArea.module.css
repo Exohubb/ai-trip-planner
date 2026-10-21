@@ -1,0 +1,94 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.results {
+  transition: opacity var(--transition-base);
+}
+
+/* Dim (but keep readable) the plan while a refinement request is in flight. */
+.refining .main {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+}
+
+.main {
+  min-width: 0;
+  transition: opacity var(--transition-base);
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+
+}
+
+.partial {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* "More days on the way" placeholder under the streamed-in days. */
+.nextDay {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+}
+
+.nextDot {
+  flex-shrink: 0;
+  width: 60px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-muted);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.nextLine {
+  flex: 1;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+  animation: pulse 1.4s 200ms ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nextDot,
+  .nextLine {
+    animation: none;
+  }
+}
+
+@media print {
+  .grid {
+    display: block;
+  }
+
+  .aside {
+    margin-top: var(--space-5);
+  }
+}

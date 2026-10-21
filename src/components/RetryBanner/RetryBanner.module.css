@@ -1,53 +1,63 @@
 .container {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  margin-bottom: var(--space-4);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius);
-  flex-wrap: wrap;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 40%, var(--color-border));
+  border-radius: var(--radius-lg);
+  background: var(--color-danger-soft);
+  animation: slideDown var(--transition-base) both;
 }
 
 .icon {
   display: inline-flex;
-  flex-shrink: 0;
   color: var(--color-danger);
 }
 
 .text {
+  flex: 1;
+  min-width: 200px;
   margin: 0;
-  flex: 1 1 auto;
-  font-family: var(--font-family);
-  font-size: var(--font-size-sm);
   color: var(--color-text);
-}
-
-.retryButton {
-  min-width: 44px;
-  min-height: 44px;
-  padding: var(--space-2) var(--space-4);
   font-family: var(--font-family);
   font-size: var(--font-size-sm);
   font-weight: 600;
-  color: var(--color-on-primary);
-  background-color: var(--color-primary);
+}
+
+.retryButton {
+  min-height: 40px;
+  padding: 0 var(--space-4);
   border: none;
   border-radius: var(--radius);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
   cursor: pointer;
-  flex-shrink: 0;
 }
 
 .retryButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+  cursor: progress;
+  opacity: 0.55;
 }
 
 .validationMessage {
+  flex-basis: 100%;
   margin: 0;
-  width: 100%;
+  color: var(--color-danger);
   font-family: var(--font-family);
   font-size: var(--font-size-sm);
-  color: var(--color-danger);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

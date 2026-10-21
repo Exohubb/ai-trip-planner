@@ -1,25 +1,66 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Compass } from "lucide-react";
 import TripInputForm from "./components/TripInputForm";
+import TripPreferences from "./components/TripPreferences";
 import ResultArea from "./components/ResultArea";
 import RestorePrompt from "./components/RestorePrompt";
 import ThemeToggle from "./components/ThemeToggle";
+import AccountBar, { type AccountInfo } from "./components/AccountBar";
+import PlannerHero from "./components/PlannerHero";
+import DestinationGallery from "./components/DestinationGallery";
+import HowItWorks from "./components/HowItWorks";
 import { useItineraryRequest } from "./hooks/useItineraryRequest";
 import { useStoredItinerary } from "./hooks/useStoredItinerary";
 import { useTheme } from "./hooks/useTheme";
 import { useGlobalShortcut } from "./hooks/useGlobalShortcut";
 import { isBlankTripDescription, TRIP_DESCRIPTION_REQUIRED_MESSAGE } from "./lib/validateTripDescription";
+import {
+  composeTripDescription,
+  DEFAULT_PREFERENCES,
+  type TripPreferences as Prefs,
+} from "./lib/tripPreferences";
+import { prefersReducedMotion } from "./lib/motion";
+import { DESTINATIONS, type Destination } from "./data/destinations";
 import styles from "./App.module.css";
 
-function App() {
+export interface AppProps {
+  /** Signed-in account (or demo mode) from the login wall; omitted when rendered standalone. */
+  account?: AccountInfo;
+  onSignOut?: () => void;
+}
+
+const TRAVELER_LABELS = { solo: "Solo", couple: "Couple", family: "Family", friends: "Friends" } as const;
+const BUDGET_LABELS = { budget: "Budget", moderate: "Moderate budget", luxury: "Luxury" } as const;
+const PACE_LABELS = { relaxed: "Relaxed pace", balanced: "Balanced pace", packed: "Packed schedule" } as const;
+
+/** Compact, human-readable summary of the selected preferences (or undefined if none). */
+function summarizePreferences(prefs: Prefs): string | undefined {
+  const parts: string[] = [];
+  if (prefs.days !== null) parts.push(`${prefs.days} ${prefs.days === 1 ? "day" : "days"}`);
+  if (prefs.travelers !== "any") parts.push(TRAVELER_LABELS[prefs.travelers]);
+  if (prefs.budget !== "any") parts.push(BUDGET_LABELS[prefs.budget]);
+  if (prefs.pace !== "any") parts.push(PACE_LABELS[prefs.pace]);
+  if (prefs.interests.length > 0) parts.push(prefs.interests.join(", "));
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
+function App({ account, onSignOut }: AppProps = {}) {
   // Live-typed textarea value. Deliberately separate from the hook's
   // `tripDescription` (which reflects the last-submitted description):
   // this local state is never cleared on submit, so the text the user
   // typed is retained in the input after any response (Req 1.5).
   const [inputValue, setInputValue] = useState("");
+  // Structured options (days, party, budget, pace, interests) appended to
+  // the description on submit. Defaults add nothing.
+  const [preferences, setPreferences] = useState<Prefs>(DEFAULT_PREFERENCES);
+  // The featured destination whose curated sample is currently displayed
+  // (drives the cover photo and the "Personalize with AI" action).
+  const [activeSample, setActiveSample] = useState<Destination | null>(null);
   // Message shown next to the retry control when it's activated with a
   // blank Trip_Description (Req 9.3). Separate from TripInputForm's own
   // validation message since retry can be triggered independently of the form.
   const [retryValidationMessage, setRetryValidationMessage] = useState<string | null>(null);
+  const resultsRef = useRef<HTMLElement>(null);
   const {
     submitStreaming,
     submitRefinement,
@@ -67,6 +108,28 @@ function App() {
     }
   }, [status, itinerary, saveItinerary]);
 
+  /** Smoothly brings the results area into view after starting a plan. */
+  const scrollToResults = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      const el = resultsRef.current;
+      if (el && typeof el.scrollIntoView === "function") {
+        el.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+      }
+    });
+  }, []);
+
+  /** Starts a streaming request for `description` combined with `prefs`. */
+  const startPlan = useCallback(
+    (description: string, prefs: Prefs) => {
+      setRetryValidationMessage(null);
+      setActiveSample(null);
+      setShowRestorePrompt(false);
+      submitStreaming(composeTripDescription(description, prefs));
+      scrollToResults();
+    },
+    [submitStreaming, scrollToResults],
+  );
+
   function handleRestore() {
     if (!storedItinerary) return;
     setShowRestorePrompt(false);
@@ -84,8 +147,7 @@ function App() {
   // AbortController staleness handling as the original non-streaming
   // `submit` (Requirement 14.4).
   function handleSubmit(description: string) {
-    setRetryValidationMessage(null);
-    submitStreaming(description);
+    startPlan(description, preferences);
   }
 
   // Retry/regenerate both resubmit through the same submitStreaming() path
@@ -101,6 +163,22 @@ function App() {
     submitStreaming(tripDescription);
   }
 
+  /** Opens a featured destination's curated sample instantly (no API call). */
+  function handleExploreDestination(destination: Destination) {
+    setShowRestorePrompt(false);
+    setActiveSample(destination);
+    restore(destination.sample);
+    scrollToResults();
+  }
+
+  /** Generates a personalized plan for a featured destination with AI. */
+  function handleGenerateDestination(destination: Destination) {
+    const prefs: Prefs = { ...preferences, days: preferences.days ?? destination.idealDays };
+    setInputValue(destination.prompt);
+    setPreferences(prefs);
+    startPlan(destination.prompt, prefs);
+  }
+
   // Keyboard shortcuts (Requirement 17.5): "e" force-expands every Stop in
   // every Day; "Enter" submits the current Trip_Description, same as
   // clicking TripInputForm's submit button. Both are registered via
@@ -114,46 +192,94 @@ function App() {
   const handleSubmitShortcut = useCallback(() => {
     if (status === "loading" || status === "streaming") return;
     if (isBlankTripDescription(inputValue)) return;
-    setRetryValidationMessage(null);
-    submitStreaming(inputValue);
-  }, [status, inputValue, submitStreaming]);
+    startPlan(inputValue, preferences);
+  }, [status, inputValue, preferences, startPlan]);
 
   useGlobalShortcut("e", handleExpandAllShortcut);
   useGlobalShortcut("Enter", handleSubmitShortcut);
 
+  const busy = status === "loading" || status === "streaming";
+  const firstName = account?.kind === "user" ? account.name.trim().split(/\s+/)[0] : undefined;
+
   return (
-    <main className={styles.app}>
-      <div className={styles.header}>
-        <h1>AI Trip Planner</h1>
-        <ThemeToggle theme={theme} onToggle={toggleTheme} />
-      </div>
-      <TripInputForm
-        value={inputValue}
-        onChange={setInputValue}
-        onSubmit={handleSubmit}
-        disabled={status === "loading" || status === "streaming"}
-      />
-      {showRestorePrompt ? (
-        <RestorePrompt onRestore={handleRestore} onDiscard={handleDiscardStored} />
-      ) : (
-        <ResultArea
-          status={status}
-          itinerary={itinerary}
-          errorMessage={errorMessage}
-          requestId={requestId}
-          isBackground={isBackground}
-          onRetry={handleRetry}
-          retryDisabled={status === "loading" || status === "streaming"}
-          retryValidationMessage={retryValidationMessage}
-          partialDays={partialDays}
-          streamIncomplete={streamIncomplete}
-          onRefine={submitRefinement}
-          isRefining={isRefining}
-          refinementError={refinementError}
-          expandSignal={expandSignal}
+    <div className={styles.app}>
+      <header className={styles.nav} data-no-print>
+        <div className={styles.navInner}>
+          <a href="#plan" className={styles.brand}>
+            <span className={styles.brandMark} aria-hidden="true">
+              <Compass size={20} strokeWidth={2.2} />
+            </span>
+            AI Trip Planner
+          </a>
+          <nav className={styles.links} aria-label="Page sections">
+            <a href="#plan">Plan a trip</a>
+            <a href="#explore">Destinations</a>
+            <a href="#how">How it works</a>
+          </nav>
+          <div className={styles.headerActions}>
+            {account && onSignOut && <AccountBar account={account} onSignOut={onSignOut} />}
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <PlannerHero firstName={firstName} isDemo={account?.kind === "demo"}>
+          <TripInputForm
+            value={inputValue}
+            onChange={setInputValue}
+            onSubmit={handleSubmit}
+            disabled={busy}
+            preferences={<TripPreferences value={preferences} onChange={setPreferences} disabled={busy} />}
+            preferencesSummary={summarizePreferences(preferences)}
+          />
+        </PlannerHero>
+
+        <section ref={resultsRef} id="results" className={styles.results} aria-label="Your itinerary">
+          {showRestorePrompt ? (
+            <RestorePrompt onRestore={handleRestore} onDiscard={handleDiscardStored} />
+          ) : (
+            <ResultArea
+              status={status}
+              itinerary={itinerary}
+              errorMessage={errorMessage}
+              requestId={requestId}
+              isBackground={isBackground}
+              onRetry={handleRetry}
+              retryDisabled={busy}
+              retryValidationMessage={retryValidationMessage}
+              partialDays={partialDays}
+              streamIncomplete={streamIncomplete}
+              onRefine={submitRefinement}
+              isRefining={isRefining}
+              refinementError={refinementError}
+              expandSignal={expandSignal}
+              coverImage={activeSample?.image}
+              isSample={activeSample !== null}
+              onExpandAll={handleExpandAllShortcut}
+              onCustomize={activeSample ? () => handleGenerateDestination(activeSample) : undefined}
+            />
+          )}
+        </section>
+
+        <DestinationGallery
+          destinations={DESTINATIONS}
+          onExplore={handleExploreDestination}
+          onGenerate={handleGenerateDestination}
+          disabled={busy}
         />
-      )}
-    </main>
+
+        <HowItWorks />
+      </main>
+
+      <footer className={styles.footer} data-no-print>
+        <div className={styles.footerInner}>
+          <span className={styles.footerBrand}>
+            <Compass size={16} aria-hidden="true" /> AI Trip Planner
+          </span>
+        </div>
+      </footer>
+    </div>
   );
 }
 

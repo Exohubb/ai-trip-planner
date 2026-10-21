@@ -1,26 +1,155 @@
-/* Root app container (Requirement 8). Mobile-first: full-width single
-   column by default, constrained to border-box sizing (global, tokens.css)
-   plus max-width: 100% here so no descendant can push the page wider than
-   the viewport (Req 8.4). A small horizontal padding keeps content off the
-   screen edges on narrow viewports without affecting layout structure. */
+/* Root app container (Requirement 8). Mobile-first; max-width: 100% (plus
+   the global border-box sizing in tokens.css) keeps any descendant from
+   pushing the page wider than the viewport (Req 8.4). */
 .app {
   box-sizing: border-box;
   max-width: 100%;
-  padding: var(--space-4);
+  min-height: 100vh;
+  /* Gentle entrance after the login wall's takeoff transition. Uses the
+     motion tokens so reduced-motion users get no animation (tokens.css). */
+  animation: appIn calc(var(--transition-base) * 2) ease both;
 }
 
-.header {
+/* ---------- Sticky glass nav ---------- */
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--nav-height);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  backdrop-filter: saturate(160%) blur(14px);
+}
+
+.navInner {
   display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 1200px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.brand {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text);
+  font-size: 1.0625rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--gradient-warm);
+  color: #ffffff;
+  box-shadow: 0 8px 20px -8px rgba(236, 72, 153, 0.7);
+  transition: transform var(--transition-base);
+}
+
+.brand:hover .brandMark {
+  transform: rotate(-20deg);
+}
+
+.links {
+  display: none;
+  gap: var(--space-1);
+  margin-left: var(--space-4);
+}
+
+.links a {
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.links a:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+@media (min-width: 900px) {
+  .links {
+    display: flex;
+  }
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+@media (max-width: 559px) {
+  .brand {
+    font-size: 0;
+    gap: 0;
+  }
+}
+
+/* ---------- Results ---------- */
+
+.results {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+  scroll-margin-top: calc(var(--nav-height) + 16px);
+}
+
+/* ---------- Footer ---------- */
+
+.footer {
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.footerInner {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4);
 }
 
-@media (min-width: 768px) {
-  .app {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: var(--space-6);
+.footerBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 800;
+}
+
+.footerText {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+@keyframes appIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

@@ -1,11 +1,12 @@
 .container {
-  padding: var(--space-3) var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--color-border);
 }
 
 .itemList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -15,16 +16,20 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-surface-muted);
   font-family: var(--font-family);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
 }
 
 .checkbox {
-  color: var(--color-text-muted);
+  color: var(--color-primary);
 }
 
 .itemLabel {
   color: var(--color-text);
+  font-weight: 600;
 }
 
 .itemLabelChecked {

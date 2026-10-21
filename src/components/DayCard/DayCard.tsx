@@ -15,19 +15,34 @@ export interface DayCardProps {
 }
 
 /**
- * Renders one Day as a distinct section containing its ordered Stops
- * (Requirement 6.1). Shows a "no stops" indicator instead of removing the
- * Day when it has zero Stop entries (Requirement 6.8). Computes `isFirst`/
- * `isLast` for each Stop from its array index so `StopItem` can disable
- * move-up/move-down at the boundaries (Requirement 6.6).
+ * Renders one Day as a distinct section with its Stops on a vertical
+ * timeline (Requirement 6.1). Shows a "no stops" indicator instead of
+ * removing the Day when it has zero Stop entries (Requirement 6.8).
+ * Computes `isFirst`/`isLast` for each Stop from its array index so
+ * `StopItem` can disable move-up/move-down at the boundaries (Requirement 6.6).
  */
 function DayCard({ day, dayNumber, onRemoveStop, onMoveStop, expandSignal }: DayCardProps) {
+  const stopCount = day.stops.length;
+
   return (
-    <section className={styles.container} aria-labelledby={`day-heading-${day.id}`}>
-      <h3 id={`day-heading-${day.id}`} className={styles.heading}>
-        Day {dayNumber}
-      </h3>
-      {day.stops.length === 0 ? (
+    <section id={`day-${dayNumber}`} className={styles.container} aria-labelledby={`day-heading-${day.id}`}>
+      <header className={styles.header}>
+        <span className={styles.badge} aria-hidden="true">
+          <span className={styles.badgeLabel}>Day</span>
+          <span className={styles.badgeNumber}>{dayNumber}</span>
+        </span>
+        <div className={styles.headingGroup}>
+          <h3 id={`day-heading-${day.id}`} className={styles.heading}>
+            Day {dayNumber}
+          </h3>
+          {day.title ? <p className={styles.dayTitle}>{day.title}</p> : null}
+          {day.summary ? <p className={styles.summary}>{day.summary}</p> : null}
+        </div>
+        <span className={styles.count}>
+          {stopCount} {stopCount === 1 ? "stop" : "stops"}
+        </span>
+      </header>
+      {stopCount === 0 ? (
         <p className={styles.noStops}>No stops planned for this day.</p>
       ) : (
         <ul className={styles.stopList}>

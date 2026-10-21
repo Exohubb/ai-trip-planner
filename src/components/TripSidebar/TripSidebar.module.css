@@ -1,0 +1,262 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.card {
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  animation: rise var(--transition-slow) both;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-base);
+  font-weight: 800;
+}
+
+.cardIcon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+/* ---------- Budget ---------- */
+
+.total {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 var(--space-4);
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.totalHint {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.barHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: 6px;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.barAmount {
+  font-variant-numeric: tabular-nums;
+}
+
+.barAmount small {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.track {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--bar);
+  transform-origin: left center;
+  animation: grow 900ms var(--delay, 0ms) var(--ease-out) both;
+}
+
+/* ---------- Packing ---------- */
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.progressText {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-muted);
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  transition: width var(--transition-base);
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checkItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.checkItem:hover {
+  background: var(--color-surface-muted);
+}
+
+.checkInput {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.checkBox {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--color-border);
+  border-radius: 7px;
+  color: transparent;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.checkInput:checked + .checkBox {
+  border-color: #16a34a;
+  background: #16a34a;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.checkInput:focus-visible + .checkBox {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.checkLabel {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  transition: color var(--transition-fast);
+}
+
+.checkInput:checked ~ .checkLabel {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+/* ---------- Tips ---------- */
+
+.tips {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: tip;
+}
+
+.tip {
+  position: relative;
+  padding-left: 34px;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  counter-increment: tip;
+}
+
+.tip::before {
+  content: counter(tip);
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill,
+  .card {
+    animation: none;
+  }
+}

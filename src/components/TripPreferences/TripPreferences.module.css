@@ -1,0 +1,274 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.group:disabled {
+  opacity: 0.6;
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+}
+
+.legend svg {
+  color: var(--color-accent);
+}
+
+.twoUp {
+  display: grid;
+  gap: var(--space-5);
+}
+
+/* Side by side only when the panel itself is wide (single-column layouts). */
+@media (min-width: 640px) and (max-width: 959px) {
+  .twoUp {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------- Chips (native radio/checkbox inputs) ---------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.chipInput {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.chip:has(.chipInput:checked) {
+  border-color: transparent;
+  background: var(--gradient-brand);
+  color: #ffffff;
+  box-shadow: 0 8px 18px -10px rgba(79, 70, 229, 0.9);
+}
+
+.chip:has(.chipInput:focus-visible) {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.chipHint {
+  opacity: 0.7;
+  font-size: 0.75rem;
+}
+
+/* ---------- Trip length ---------- */
+
+.lengthHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.lengthValue {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.lengthValue small {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+}
+
+.lengthBump {
+  display: inline-block;
+  animation: bump var(--transition-base) both;
+}
+
+.flexToggle,
+.quickDay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.flexToggle:hover,
+.quickDay:hover {
+  border-color: var(--color-primary);
+  color: var(--color-text);
+}
+
+.flexToggle[aria-pressed="true"],
+.quickDay[aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.stepButton {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.stepButton:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  transform: scale(1.06);
+}
+
+.stepButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.slider {
+  flex: 1;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #4f46e5, #a21caf var(--fill), var(--color-border) var(--fill));
+}
+
+.slider::-moz-range-track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #4f46e5, #a21caf var(--fill), var(--color-border) var(--fill));
+}
+
+.slider[data-flexible]::-webkit-slider-runnable-track {
+  background: var(--color-border);
+}
+
+.slider[data-flexible]::-moz-range-track {
+  background: var(--color-border);
+}
+
+.slider::-webkit-slider-thumb {
+  width: 24px;
+  height: 24px;
+  margin-top: -8px;
+  border: 4px solid #ffffff;
+  border-radius: 50%;
+  background: #7e22ce;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.55);
+  appearance: none;
+  -webkit-appearance: none;
+  transition: transform var(--transition-fast);
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 4px solid #ffffff;
+  border-radius: 50%;
+  background: #7e22ce;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.55);
+}
+
+.slider:hover::-webkit-slider-thumb,
+.slider:focus-visible::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+.quickDays {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+@keyframes bump {
+  from {
+    opacity: 0.4;
+    transform: translateY(4px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

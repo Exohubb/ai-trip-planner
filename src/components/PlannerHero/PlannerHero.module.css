@@ -1,0 +1,233 @@
+.hero {
+  position: relative;
+  isolation: isolate;
+  padding: var(--space-7) var(--space-4) var(--space-7);
+  overflow: hidden;
+  color: #ffffff;
+}
+
+.sceneWrap {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: -1;
+  height: min(820px, 100%);
+  min-height: 560px;
+}
+
+/* Fade the scene's mountains into the page background. */
+.sceneFade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 220px;
+  background: linear-gradient(180deg, transparent, var(--color-bg) 92%);
+  pointer-events: none;
+}
+
+.inner {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  pointer-events: none;
+}
+
+.inner > * {
+  pointer-events: auto;
+}
+
+.intro {
+  max-width: 760px;
+  margin: 0 auto var(--space-6);
+  text-align: center;
+  animation: riseIn 900ms var(--ease-out) both;
+}
+
+.greeting {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-pill);
+  background: rgba(30, 27, 75, 0.42);
+  backdrop-filter: blur(8px);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.wave {
+  display: inline-block;
+  transform-origin: 70% 70%;
+  animation: wave 2.4s ease-in-out 600ms 2;
+}
+
+.title {
+  margin: var(--space-4) 0 var(--space-3);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  text-shadow:
+    0 2px 10px rgba(15, 23, 42, 0.35),
+    0 4px 30px rgba(15, 23, 42, 0.35);
+}
+
+.titleBreak {
+  white-space: nowrap;
+}
+
+.word {
+  display: inline-block;
+  background: linear-gradient(90deg, #fde68a, #fdba74 45%, #f9a8d4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+  animation: wordIn 650ms var(--ease-out) both;
+}
+
+@media (max-width: 559px) {
+  /* Keep the headline legible over the balloon/cloud art on small screens. */
+  .intro {
+    position: relative;
+  }
+
+  .intro::before {
+    content: "";
+    position: absolute;
+    inset: -8px -12px;
+    z-index: -1;
+    border-radius: var(--radius-xl);
+    background: radial-gradient(ellipse at center, rgba(30, 27, 75, 0.55), rgba(30, 27, 75, 0.18) 70%, transparent);
+    filter: blur(6px);
+  }
+
+  .titleBreak {
+    white-space: normal;
+  }
+
+  .word {
+    display: block;
+  }
+}
+
+.subtitle {
+  max-width: 620px;
+  margin: 0 auto;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: clamp(1rem, 1.6vw, 1.125rem);
+  line-height: 1.65;
+  text-shadow: 0 1px 14px rgba(15, 23, 42, 0.55);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badges li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--radius-pill);
+  background: rgba(30, 27, 75, 0.42);
+  backdrop-filter: blur(8px);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.badges svg {
+  color: #fde68a;
+}
+
+.card {
+  position: relative;
+  padding: clamp(var(--space-5), 3vw, var(--space-7));
+  border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow:
+    var(--shadow-lg),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  animation: cardIn 1000ms 120ms var(--ease-out) both;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 24px auto;
+  height: 4px;
+  border-radius: 0 0 var(--radius-pill) var(--radius-pill);
+  background: linear-gradient(90deg, #4338ca, #7e22ce, #be185d, #f59e0b, #4338ca);
+  background-size: 200% 100%;
+  animation: shimmer 6s linear infinite;
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(36px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes wordIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes wave {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0);
+  }
+  10%,
+  30% {
+    transform: rotate(14deg);
+  }
+  20%,
+  40% {
+    transform: rotate(-8deg);
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero *,
+  .hero *::before {
+    animation: none !important;
+  }
+}

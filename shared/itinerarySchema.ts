@@ -15,6 +15,12 @@ const baseBlockFields = {
   description: z.string().max(500).optional(),
   location: z.string().max(500).optional(),
   notes: z.string().max(500).optional(),
+  // Presentation-only extras. `.catch(undefined)` means a malformed value is
+  // dropped rather than invalidating the whole itinerary.
+  /** Free-form category hint (e.g. "food", "sight") used to pick an icon. */
+  category: z.string().trim().max(40).optional().catch(undefined),
+  /** Human-readable cost estimate, e.g. "€15" or "Free". */
+  price: z.string().trim().max(60).optional().catch(undefined),
 };
 
 /**
@@ -150,12 +156,45 @@ export const StopSchema = z.preprocess((value) => {
 
 export const DaySchema = z.object({
   id: z.union([z.string(), z.number()]),
+  /** Optional theme for the day, e.g. "Temples of Higashiyama". */
+  title: z.string().trim().max(150).optional().catch(undefined),
+  /** Optional one- or two-sentence overview of the day. */
+  summary: z.string().trim().max(500).optional().catch(undefined),
   stops: z.array(StopSchema).max(20).default([]),
 });
 
+/** Trip-level estimated budget breakdown. */
+export const TripBudgetSchema = z.object({
+  currency: z.string().trim().max(10).optional(),
+  items: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1).max(100),
+        amount: z.number(),
+      }),
+    )
+    .max(20)
+    .default([]),
+  total: z.number().optional(),
+});
+
+/**
+ * Only `days` is required. The trip-level extras (title, summary, budget,
+ * packing list, tips, ...) are optional, and each one is dropped (rather
+ * than failing validation) if the model returns it in a malformed shape.
+ */
 export const ItinerarySchema = z.object({
+  title: z.string().trim().max(150).optional().catch(undefined),
+  destination: z.string().trim().max(150).optional().catch(undefined),
+  summary: z.string().trim().max(800).optional().catch(undefined),
+  bestTime: z.string().trim().max(200).optional().catch(undefined),
+  budget: TripBudgetSchema.optional().catch(undefined),
+  packingList: z.array(z.string().trim().min(1).max(120)).max(30).optional().catch(undefined),
+  tips: z.array(z.string().trim().min(1).max(300)).max(10).optional().catch(undefined),
   days: z.array(DaySchema).max(30).default([]),
 });
+
+export type TripBudget = z.infer<typeof TripBudgetSchema>;
 
 export type StopBlock = z.infer<typeof StopBlockSchema>;
 export type CostBlock = z.infer<typeof CostBlockSchema>;
@@ -190,10 +229,19 @@ export type Stop =
 
 export interface Day {
   id: string | number;
+  title?: string;
+  summary?: string;
   stops: Stop[];
 }
 
 export interface Itinerary {
+  title?: string;
+  destination?: string;
+  summary?: string;
+  bestTime?: string;
+  budget?: TripBudget;
+  packingList?: string[];
+  tips?: string[];
   days: Day[];
 }
 

@@ -9,11 +9,45 @@
 
 import type { Itinerary } from "../shared/itinerarySchema.ts";
 
+/** Shared content guidance for both new itineraries and refinements. */
+const CONTENT_GUIDANCE = `You are an expert local travel planner. Build realistic, well-paced plans
+with real, specific places (named sights, restaurants, neighborhoods).
+- If the user states a trip length, produce exactly that many days; otherwise choose a sensible length.
+- Give the trip a short, evocative "title", the "destination" (city, country), a 1-2 sentence "summary",
+  and "bestTime" (best season/months to visit).
+- Give every day a short theme "title" and a one-sentence "summary".
+- Each day should have 3-6 stops in chronological order. For each stop set "time" (e.g. "9:00 AM"),
+  "category" (one of the allowed values), "location" (place name and area), a vivid "description"
+  under 200 characters, an approximate "price" per person in local currency (or "Free"), and a short
+  practical insider tip in "notes".
+- Respect the user's stated budget, travel party, pace and interests.
+- "budget" is an estimated total per person for the whole trip: 3-6 "items" (e.g. Accommodation,
+  Food, Activities, Local transport) with numeric amounts, a 3-letter "currency" code, and "total".
+- "packingList": 6-10 short items specific to the destination and season.
+- "tips": 3-5 short, practical tips (etiquette, transport, money, safety).
+Keep all text concise.`;
+
 const SYSTEM_INSTRUCTION = `Return ONLY a JSON object matching the provided schema. Do not include any
 prose, markdown, or explanation outside the JSON. "days" must be an array,
 ordered by day number, of at most 30 entries. Each day's "stops" must be an
 array of at most 20 entries. Every stop must have a unique, non-empty "id"
-string and a non-empty "title".`;
+string and a non-empty "title".
+
+${CONTENT_GUIDANCE}`;
+
+/** Allowed values for a stop's "category" (used by the UI to pick icons). */
+export const STOP_CATEGORIES = [
+  "sight",
+  "culture",
+  "food",
+  "nature",
+  "activity",
+  "shopping",
+  "nightlife",
+  "transport",
+  "lodging",
+  "other",
+] as const;
 
 /**
  * Gemini's structured-output schema dialect (a subset of OpenAPI/JSON Schema).
@@ -22,6 +56,32 @@ string and a non-empty "title".`;
 const ITINERARY_RESPONSE_SCHEMA = {
   type: "OBJECT",
   properties: {
+    title: { type: "STRING", description: "Short, evocative trip title." },
+    destination: { type: "STRING", description: "City and country, e.g. \"Kyoto, Japan\"." },
+    summary: { type: "STRING", description: "1-2 sentence overview of the trip." },
+    bestTime: { type: "STRING", description: "Best months or season to visit." },
+    budget: {
+      type: "OBJECT",
+      description: "Estimated per-person budget for the whole trip.",
+      properties: {
+        currency: { type: "STRING", description: "3-letter currency code, e.g. \"EUR\"." },
+        items: {
+          type: "ARRAY",
+          items: {
+            type: "OBJECT",
+            properties: {
+              label: { type: "STRING" },
+              amount: { type: "NUMBER" },
+            },
+            required: ["label", "amount"],
+          },
+        },
+        total: { type: "NUMBER" },
+      },
+      required: ["currency", "items", "total"],
+    },
+    packingList: { type: "ARRAY", items: { type: "STRING" } },
+    tips: { type: "ARRAY", items: { type: "STRING" } },
     days: {
       type: "ARRAY",
       items: {
@@ -31,6 +91,8 @@ const ITINERARY_RESPONSE_SCHEMA = {
             type: "STRING",
             description: "Day identifier, e.g. 1 or \"Day 1\".",
           },
+          title: { type: "STRING", description: "Short theme for the day." },
+          summary: { type: "STRING", description: "One-sentence overview of the day." },
           stops: {
             type: "ARRAY",
             items: {
@@ -44,7 +106,9 @@ const ITINERARY_RESPONSE_SCHEMA = {
                 time: { type: "STRING" },
                 description: { type: "STRING" },
                 location: { type: "STRING" },
-                notes: { type: "STRING" },
+                notes: { type: "STRING", description: "Short practical insider tip." },
+                category: { type: "STRING", format: "enum", enum: STOP_CATEGORIES },
+                price: { type: "STRING", description: "Approximate cost per person, e.g. \"€15\" or \"Free\"." },
               },
               required: ["id", "title"],
             },
@@ -54,7 +118,7 @@ const ITINERARY_RESPONSE_SCHEMA = {
       },
     },
   },
-  required: ["days"],
+  required: ["title", "destination", "summary", "days"],
 } as const;
 
 export interface GeminiPromptPayload {
@@ -109,7 +173,10 @@ the existing days and stops as they are. Do not include any prose, markdown,
 or explanation outside the JSON. "days" must be an array, ordered by day
 number, of at most 30 entries. Each day's "stops" must be an array of at
 most 20 entries. Every stop must have a unique, non-empty "id" string and a
-non-empty "title".`;
+non-empty "title". Keep the trip-level fields (title, destination, summary,
+bestTime, budget, packingList, tips) and update them if the change affects them.
+
+${CONTENT_GUIDANCE}`;
 
 /**
  * Builds the full request body for Gemini's `generateContent` endpoint for a

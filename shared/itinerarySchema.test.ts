@@ -256,3 +256,44 @@ describe("StopSchema block types (Requirement 13)", () => {
     }
   });
 });
+
+describe("ItinerarySchema trip-level extras", () => {
+  it("keeps well-formed trip details, day themes and stop categories/prices", () => {
+    const result = ItinerarySchema.safeParse({
+      title: "Roman Holiday",
+      destination: "Rome, Italy",
+      summary: "Three days of ruins and pasta.",
+      bestTime: "Spring",
+      budget: { currency: "EUR", items: [{ label: "Hotel", amount: 300 }], total: 300 },
+      packingList: ["Walking shoes"],
+      tips: ["Book the Vatican ahead."],
+      days: [{ id: 1, title: "Ancient Rome", stops: [{ id: "s1", title: "Colosseum", category: "sight", price: "€18" }] }],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.title).toBe("Roman Holiday");
+    expect(result.data.budget?.total).toBe(300);
+    expect(result.data.days[0].title).toBe("Ancient Rome");
+    expect(result.data.days[0].stops[0]).toMatchObject({ category: "sight", price: "€18" });
+  });
+
+  it("drops malformed optional extras instead of rejecting the whole itinerary", () => {
+    const result = ItinerarySchema.safeParse({
+      title: 42,
+      budget: { items: [{ label: "Hotel", amount: "lots" }] },
+      packingList: "not an array",
+      tips: [""],
+      days: [{ id: 1, title: { nested: true }, stops: [{ id: "s1", title: "Colosseum", price: 18 }] }],
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.title).toBeUndefined();
+    expect(result.data.budget).toBeUndefined();
+    expect(result.data.packingList).toBeUndefined();
+    expect(result.data.tips).toBeUndefined();
+    expect(result.data.days[0].title).toBeUndefined();
+    expect(result.data.days[0].stops[0].price).toBeUndefined();
+  });
+});

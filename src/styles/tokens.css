@@ -5,16 +5,31 @@
 
 :root {
   /* Color — verified 4.5:1+ contrast for text-on-background pairs */
-  --color-bg: #ffffff;
-  --color-surface: #f7f7f8;
-  --color-text: #1a1a1e; /* ~16.1:1 on --color-bg */
-  --color-text-muted: #55565c; /* ~7.1:1 on --color-bg */
-  --color-primary: #2f5fd9; /* ~4.6:1 on white for text use */
+  --color-bg: #f5f6fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef0f7;
+  --color-text: #141627; /* ~16:1 on --color-bg */
+  --color-text-muted: #545a70; /* ~6.6:1 on --color-bg */
+  --color-primary: #4f46e5; /* ~6.3:1 on white for text use */
+  --color-primary-soft: #eef0ff;
+  --color-accent: #7e22ce; /* ~7:1 on white */
+  --color-accent-soft: #f5edff;
   --color-danger: #b3261e; /* ~6.5:1 on white for text use */
+  --color-danger-soft: #fdeceb;
   --color-success: #1e7d32;
-  --color-focus-ring: #2f5fd9; /* 3:1+ against --color-surface/--color-bg, Req 10.4 */
-  --color-border: #dcdce0;
-  --color-on-primary: #ffffff; /* text/icon color on --color-primary buttons, ~4.6:1 */
+  --color-success-soft: #e8f5ea;
+  --color-warning: #9a5b00;
+  --color-warning-soft: #fff4e0;
+  --color-focus-ring: #4f46e5; /* 3:1+ against --color-surface/--color-bg, Req 10.4 */
+  --color-border: #dfe2ec;
+  --color-on-primary: #ffffff; /* text/icon color on --color-primary buttons, ~6.3:1 */
+
+  --gradient-brand: linear-gradient(135deg, #4338ca 0%, #7e22ce 55%, #be185d 100%);
+  --gradient-warm: linear-gradient(135deg, #f59e0b, #ec4899 55%, #8b5cf6);
+
+  --shadow-sm: 0 1px 2px rgba(20, 22, 39, 0.06), 0 1px 3px rgba(20, 22, 39, 0.08);
+  --shadow-md: 0 10px 30px -14px rgba(20, 22, 39, 0.3);
+  --shadow-lg: 0 30px 70px -30px rgba(20, 22, 39, 0.45);
 
   /* Spacing scale (4px base) */
   --space-1: 4px;
@@ -30,12 +45,22 @@
   --font-size-base: 1rem;
   --font-size-lg: 1.25rem;
   --font-size-xl: 1.75rem;
-  --font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-size-2xl: 2.25rem;
+  --font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --radius: 8px;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
   --transition-fast: 150ms ease;
   /* Used for expand/collapse and reorder state-change animations (Req 17.1). */
   --transition-base: 300ms ease;
+  /* Decorative entrance/hover motion; also collapsed under reduced motion. */
+  --transition-slow: 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Height of the sticky app nav, used for anchor scroll offsets. */
+  --nav-height: 68px;
 }
 
 /* Dark theme token overrides (Requirement 17.3), toggled via a
@@ -46,16 +71,28 @@
    Contrast ratios mirror the light theme's (text/muted text against the
    dark surface/background). */
 [data-theme="dark"] {
-  --color-bg: #16171a;
-  --color-surface: #202126;
-  --color-text: #f0f0f2; /* ~16:1 on --color-bg */
-  --color-text-muted: #b7b8be; /* ~7.2:1 on --color-bg */
-  --color-primary: #7fa1ff; /* ~7.5:1 on --color-bg for text use */
+  --color-bg: #0a0e1f;
+  --color-surface: #121833;
+  --color-surface-muted: #1a2142;
+  --color-text: #eef1fb; /* ~16:1 on --color-bg */
+  --color-text-muted: #a9b1cc; /* ~8:1 on --color-bg */
+  --color-primary: #a5b4fc; /* ~9:1 on --color-bg for text use */
+  --color-primary-soft: #1d2350;
+  --color-accent: #d8b4fe;
+  --color-accent-soft: #2a1d4a;
   --color-danger: #ff8a80;
+  --color-danger-soft: #3a1618;
   --color-success: #6fcf7d;
-  --color-focus-ring: #7fa1ff;
-  --color-border: #3a3b42;
-  --color-on-primary: #0b0b0d;
+  --color-success-soft: #13301d;
+  --color-warning: #fbbf24;
+  --color-warning-soft: #33260b;
+  --color-focus-ring: #a5b4fc;
+  --color-border: #283053;
+  --color-on-primary: #0b0b1a;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 12px 30px -14px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 30px 70px -30px rgba(0, 0, 0, 0.85);
 }
 
 *,
@@ -80,6 +117,21 @@ body {
   font-family: var(--font-family);
   color: var(--color-text);
   background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color var(--transition-base);
+}
+
+/* Visually hidden but still announced by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 /* Global focus indicator (Req 10.4): every native button/textarea/link gets
@@ -101,5 +153,28 @@ body {
   :root {
     --transition-base: 0ms;
     --transition-fast: 0ms;
+    --transition-slow: 0ms;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--nav-height) + 16px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Hide interactive chrome (nav, forms, gallery) when printing an itinerary. */
+@media print {
+  [data-no-print] {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
   }
 }

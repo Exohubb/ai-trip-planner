@@ -4,6 +4,8 @@ import { buildItineraryPrompt, buildRefinementPrompt } from "./promptBuilder.ts"
 import { callLLM, streamLLM } from "./gemini.ts";
 import { findCompleteDayObjects } from "./streamParser.ts";
 import { ItinerarySchema } from "../shared/itinerarySchema.ts";
+import { createUserStore } from "./userStore.ts";
+import { createAuthRouter } from "./authRoutes.ts";
 
 const app = express();
 const PORT = process.env.SERVER_PORT ?? 3001;
@@ -11,11 +13,17 @@ const PORT = process.env.SERVER_PORT ?? 3001;
 const MAX_DESCRIPTION_LENGTH = 5000;
 const MAX_INSTRUCTION_LENGTH = 1000;
 
+// Accounts for the login wall live in a local JSON file (gitignored).
+// Override with AUTH_DATA_FILE, e.g. to point tests at a temp file.
+const AUTH_DATA_FILE = process.env.AUTH_DATA_FILE ?? fileURLToPath(new URL("./data/users.json", import.meta.url));
+
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+app.use("/api/auth", createAuthRouter(createUserStore(AUTH_DATA_FILE)));
 
 app.post("/api/itinerary", async (req, res) => {
   const description = req.body?.description;

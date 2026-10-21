@@ -369,3 +369,68 @@ describe("App UI polish (dark mode + keyboard shortcuts)", () => {
     expect(mockedStreamItinerary).not.toHaveBeenCalled();
   });
 });
+
+describe("App planner features (preferences + featured destinations)", () => {
+  beforeEach(() => {
+    mockedStreamItinerary.mockReset();
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("appends the chosen trip length and travel style to the description it submits", async () => {
+    const user = userEvent.setup();
+    deferredStream();
+    render(<App />);
+
+    await user.type(screen.getByLabelText(/describe your trip/i), "Lisbon for foodies");
+    await user.click(screen.getByRole("button", { name: "5 days" }));
+    await user.click(screen.getByRole("radio", { name: /couple/i }));
+    await user.click(screen.getByRole("checkbox", { name: /food & drink/i }));
+    await user.click(screen.getByRole("button", { name: /plan my trip/i }));
+
+    const [description] = mockedStreamItinerary.mock.calls[0];
+    expect(description).toContain("Lisbon for foodies");
+    expect(description).toContain("Trip length: exactly 5 days");
+    expect(description).toContain("Traveling as: a couple");
+    expect(description).toContain("Interests: Food & drink");
+  });
+
+  it("opens a featured destination's sample itinerary instantly without calling the API", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: /view the kyoto sample itinerary/i }));
+
+    expect(await screen.findByRole("heading", { name: "Timeless Kyoto" })).toBeInTheDocument();
+    expect(screen.getByText("Fushimi Inari Taisha")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Day 3" })).toBeInTheDocument();
+    expect(screen.getByText(/curated sample plan/i)).toBeInTheDocument();
+    expect(mockedStreamItinerary).not.toHaveBeenCalled();
+  });
+
+  it("generates a personalized plan for a featured destination with AI", async () => {
+    const user = userEvent.setup();
+    deferredStream();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: /generate a personalized rome itinerary with ai/i }));
+
+    const [description] = mockedStreamItinerary.mock.calls[0];
+    expect(description).toContain("Rome, Italy");
+    expect(description).toContain("Trip length: exactly 3 days");
+    expect((screen.getByLabelText(/describe your trip/i) as HTMLTextAreaElement).value).toContain("Rome, Italy");
+  });
+
+  it("filters featured destinations by tag", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Nature" }));
+
+    expect(screen.getByRole("heading", { name: "Bali" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Paris" })).not.toBeInTheDocument();
+  });
+});

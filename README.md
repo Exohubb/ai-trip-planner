@@ -11,7 +11,7 @@
 [![Vitest](https://img.shields.io/badge/Vitest-2.1-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)](https://vitest.dev)
 [![Zod](https://img.shields.io/badge/Zod-3.23-3E67B1?style=for-the-badge&logo=zod&logoColor=white)](https://zod.dev)
 
-[![Tests](https://img.shields.io/badge/tests-207%20passing-2EA043?style=for-the-badge&logo=vitest&logoColor=white)]()
+[![Tests](https://img.shields.io/badge/tests-227%20passing-2EA043?style=for-the-badge&logo=vitest&logoColor=white)]()
 [![Gemini](https://img.shields.io/badge/LLM-Google%20Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)]()
 
@@ -47,6 +47,7 @@ A free-form trip description goes in. A Gemini-generated itinerary comes back as
 | 💾 **Save & reload sessions** | The last itinerary persists to `localStorage` and offers to restore it on your next visit — corrupted or unavailable storage never breaks the app. |
 | 🔁 **Stale-request-safe UX** | A request-id + `AbortController` pair guarantees only the **latest** submitted request's outcome is ever rendered, no matter how fast you resubmit or how out-of-order responses arrive. |
 | ♻️ **Retry & regenerate flows** | A failed retry or regenerate keeps the previous itinerary visible with a non-blocking banner instead of blanking the screen; a successful regenerate cleanly replaces it. |
+| 🛫 **Travel-themed login wall** | An animated sign-in / register page (dusk sky or starry night, drifting clouds, planes flying dashed routes, pointer parallax, click-to-drop destination pins) with a boarding-pass style card, and a **Try the demo** button that unlocks every feature without an account. |
 | 🎨 **Accessible & responsive design** | Token-based design system with 4.5:1+ text contrast, a visible focus ring, 44px+ touch targets, full keyboard operability, dark mode, and a mobile-first layout that adapts at 768px. |
 
 <br>
@@ -103,7 +104,7 @@ flowchart LR
 
 | Requirement | Notes |
 |---|---|
-| **Node.js** ≥ 18 | Required by Vite 5 and the `tsx`-based backend. Node 22+ enables the native `--env-file` flag used by the `server` script. |
+| **Node.js** ≥ 18 | Required by Vite 5 and the `tsx`-based backend. Node 22+ (22.9+) enables the native `--env-file-if-exists` flag used by the `server` script. |
 | **npm** | Ships with Node — no other package manager needed. |
 | **Gemini API key** | Get one for free at [Google AI Studio](https://aistudio.google.com/app/apikey). |
 
@@ -148,7 +149,7 @@ Under the hood this is `concurrently "npm:client" "npm:server"`:
 | Process | Command | Serves |
 |---|---|---|
 | `client` | `vite` | React frontend at `http://localhost:5173` |
-| `server` | `tsx watch --env-file=.env server/server.ts` | Express proxy on port `3001` (configurable via `SERVER_PORT`) |
+| `server` | `tsx watch --env-file-if-exists=.env server/server.ts` | Express proxy on port `3001` (configurable via `SERVER_PORT`) |
 
 Vite's dev server proxies any `/api/*` request to the Express server, so the frontend only ever calls same-origin paths — no CORS setup needed.
 
@@ -182,15 +183,18 @@ ai-trip-planner/
 ├── shared/
 │   └── itinerarySchema.ts        # Zod schema + inferred types, shared by frontend & backend
 ├── server/
-│   ├── server.ts                 # Express app: /api/itinerary, /api/itinerary/stream, /api/itinerary/refine
+│   ├── server.ts                 # Express app: /api/itinerary, /api/itinerary/stream, /api/itinerary/refine, /api/auth
+│   ├── authRoutes.ts             # /api/auth: register, login, me, logout
+│   ├── userStore.ts              # file-backed account + session store (demo-grade, plain text)
 │   ├── gemini.ts                 # callLLM() / streamLLM() — isolated Gemini integration
 │   ├── promptBuilder.ts          # builds the system instruction + responseSchema for Gemini
 │   └── streamParser.ts           # incremental Day-object extraction from a streamed response
 ├── src/
-│   ├── main.tsx, App.tsx
+│   ├── main.tsx, Root.tsx (login wall gate), App.tsx
 │   ├── hooks/
 │   │   ├── useItineraryRequest.ts   # request-lifecycle hook: request-id + AbortController
 │   │   ├── useStoredItinerary.ts    # localStorage save/restore for the last itinerary
+│   │   ├── useAuth.ts               # session (account or demo) in localStorage
 │   │   ├── useTheme.ts              # dark mode toggle + persistence
 │   │   └── useGlobalShortcut.ts     # keyboard shortcuts (skipped while typing)
 │   ├── lib/
@@ -204,6 +208,7 @@ ai-trip-planner/
 │   │   ├── LoadingSkeleton/, ErrorState/, EmptyState/, EmptyResultState/
 │   │   ├── RetryBanner/, RestorePrompt/, StreamingIndicator/
 │   │   ├── ItineraryView/, DayCard/, StopItem/
+│   │   ├── AuthPage/ (+ TravelScene), AccountBar/  # login wall + header account chip
 │   │   ├── RefinementForm/, ThemeToggle/
 │   │   └── CostCard/, ChecklistCard/, ChartCard/   # type-specific block renderers
 │   └── styles/tokens.css                # design tokens: color, spacing, type, focus ring, dark theme
@@ -221,8 +226,8 @@ The suite is weighted toward the highest-risk area first — the AI-response par
 
 | Metric | Result |
 |---|---|
-| **Test files** | 25 |
-| **Tests** | 207 passing ✅ |
+| **Test files** | 28 |
+| **Tests** | 227 passing ✅ |
 | **Typecheck** | `tsc --noEmit` clean ✅ |
 
 </div>
@@ -257,6 +262,8 @@ Each task was implemented, tested, and committed one at a time rather than gener
 <br>
 
 ## ⚠️ Known Limitations
+
+- **The login wall is for demonstration only.** Accounts are stored in a local JSON file (`server/data/users.json`, gitignored, overridable via `AUTH_DATA_FILE`) with **plain-text passwords** and no hashing, rate limiting, or token expiry. The itinerary endpoints don't require a session either (demo mode uses them freely). Don't enter a real password, and don't deploy this as-is.
 
 - **Single LLM provider.** Only Gemini is supported; there's no provider abstraction layer, since the assignment scope didn't call for multi-provider support.
 - **No authentication or rate limiting** on the itinerary endpoints. This is a local evaluation project, not a hardened multi-tenant deployment — running it publicly as-is would let anyone with network access consume your Gemini quota.

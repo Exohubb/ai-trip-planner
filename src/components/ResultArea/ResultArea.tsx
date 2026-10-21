@@ -9,6 +9,9 @@ import RetryBanner from "../RetryBanner";
 import StreamingIndicator from "../StreamingIndicator";
 import DayCard from "../DayCard";
 import RefinementForm from "../RefinementForm";
+import TripOverview from "../TripOverview";
+import TripSidebar from "../TripSidebar";
+import styles from "./ResultArea.module.css";
 
 export interface ResultAreaProps {
   status: RequestStatus;
@@ -41,15 +44,27 @@ export interface ResultAreaProps {
   refinementError?: string | null;
   /** Forwarded to `ItineraryView` to force-expand every Stop (Requirement 17.5). */
   expandSignal?: number;
+  /** Cover photo for the overview header (featured-destination samples). */
+  coverImage?: string;
+  /** True when the displayed itinerary is a curated sample, not AI output. */
+  isSample?: boolean;
+  /** Expands every stop (same as the "e" shortcut). */
+  onExpandAll?: () => void;
+  /** For samples: regenerate the destination with AI and the user's preferences. */
+  onCustomize?: () => void;
 }
 
 /** Read-only preview of the Days streamed in so far, with no edit controls wired up yet. */
 function PartialDayPreview({ days }: { days: Day[] }) {
   return (
-    <div>
+    <div className={styles.partial}>
       {days.map((day, index) => (
         <DayCard key={day.id} day={day} dayNumber={index + 1} />
       ))}
+      <div className={styles.nextDay} aria-hidden="true">
+        <span className={styles.nextDot} />
+        <span className={styles.nextLine} />
+      </div>
     </div>
   );
 }
@@ -75,6 +90,10 @@ function ResultArea({
   isRefining = false,
   refinementError = null,
   expandSignal,
+  coverImage,
+  isSample = false,
+  onExpandAll,
+  onCustomize,
 }: ResultAreaProps) {
   if (status === "idle") {
     return <EmptyState />;
@@ -91,10 +110,10 @@ function ResultArea({
   if (status === "streaming" && !itinerary) {
     if (partialDays.length === 0) return <LoadingSkeleton message="Generating your itinerary…" />;
     return (
-      <>
+      <div className={styles.stack}>
         <StreamingIndicator />
         <PartialDayPreview days={partialDays} />
-      </>
+      </div>
     );
   }
 
@@ -114,7 +133,7 @@ function ResultArea({
       );
     }
     return (
-      <>
+      <div className={styles.stack}>
         <RetryBanner
           message={errorMessage ?? "Something went wrong. Please try again."}
           onRetry={onRetry}
@@ -122,7 +141,7 @@ function ResultArea({
           retryValidationMessage={retryValidationMessage}
         />
         <PartialDayPreview days={partialDays} />
-      </>
+      </div>
     );
   }
 
@@ -143,7 +162,7 @@ function ResultArea({
 
   if (itinerary) {
     return (
-      <>
+      <div className={styles.stack}>
         {isBackground && status === "streaming" ? <StreamingIndicator /> : null}
         {isBackground && status === "error" ? (
           <RetryBanner
@@ -153,11 +172,28 @@ function ResultArea({
             retryValidationMessage={retryValidationMessage}
           />
         ) : null}
-        <ItineraryView key={requestId} days={itinerary.days} expandSignal={expandSignal} />
-        {onRefine ? (
-          <RefinementForm onSubmit={onRefine} disabled={isRefining} error={refinementError} />
-        ) : null}
-      </>
+        <div className={isRefining ? `${styles.results} ${styles.refining}` : styles.results}>
+          <TripOverview
+            itinerary={itinerary}
+            coverImage={coverImage}
+            isSample={isSample}
+            onExpandAll={onExpandAll}
+            onCustomize={onCustomize}
+          />
+          <div className={styles.grid}>
+            <div className={styles.main}>
+              <ItineraryView key={requestId} days={itinerary.days} expandSignal={expandSignal} />
+            </div>
+            <aside className={styles.aside} aria-label="Trip details">
+              <TripSidebar itinerary={itinerary}>
+                {onRefine ? (
+                  <RefinementForm onSubmit={onRefine} disabled={isRefining} error={refinementError} />
+                ) : null}
+              </TripSidebar>
+            </aside>
+          </div>
+        </div>
+      </div>
     );
   }
 
