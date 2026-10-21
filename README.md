@@ -1,285 +1,539 @@
 <div align="center">
 
+<img src="docs/screenshots/light-planner.jpg" alt="AI Trip Planner: planner page" width="100%" />
+
 # ✈️ AI Trip Planner
 
-**Describe a trip in plain English — get back a structured, editable, day-by-day itinerary, validated end-to-end before it ever touches the screen.**
+**Describe a trip in plain English. Get a streamed, day-by-day itinerary with times, costs, maps and local tips, validated end to end before it reaches the screen.**
+
+[**🌍 Live demo**](https://YOUR-LIVE-URL-HERE) &nbsp;·&nbsp; [Features](#-features) &nbsp;·&nbsp; [How it works](#-how-it-works) &nbsp;·&nbsp; [Getting started](#-getting-started) &nbsp;·&nbsp; [API](#-api-reference) &nbsp;·&nbsp; [Deploy](#-deploying-to-aws-ec2)
+
+<br>
 
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev)
 [![Express](https://img.shields.io/badge/Express-4.21-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com)
-[![Vitest](https://img.shields.io/badge/Vitest-2.1-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)](https://vitest.dev)
-[![Zod](https://img.shields.io/badge/Zod-3.23-3E67B1?style=for-the-badge&logo=zod&logoColor=white)](https://zod.dev)
-
-[![Tests](https://img.shields.io/badge/tests-227%20passing-2EA043?style=for-the-badge&logo=vitest&logoColor=white)]()
+[![Zod](https://img.shields.io/badge/Zod-3.x-3E67B1?style=for-the-badge&logo=zod&logoColor=white)](https://zod.dev)
 [![Gemini](https://img.shields.io/badge/LLM-Google%20Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)]()
+[![Tests](https://img.shields.io/badge/tests-248%20passing-2EA043?style=for-the-badge&logo=vitest&logoColor=white)](#-testing)
 
 </div>
 
 <br>
 
-A free-form trip description goes in. A Gemini-generated itinerary comes back as strict JSON, gets validated against a **shared Zod schema on both the backend and frontend**, and only then reaches the React UI as an interactive, editable list of days and stops. The model's raw text is never shown to the user — every response is treated as untrusted input until proven otherwise.
+## 📖 Overview
+
+AI Trip Planner turns a free-form sentence such as *"A relaxed 5-day trip to Lisbon for two, mostly food and walking"* into a structured itinerary you can read, reorder, edit and refine.
+
+The model's raw text is never shown to the user. Gemini is asked for strict JSON, the Express proxy validates it against a **Zod schema shared with the frontend**, and the browser validates it again before rendering. Anything that doesn't match becomes a clear error state, not a broken page.
+
+<div align="center">
+<img src="docs/screenshots/light-itinerary.jpg" alt="Generated itinerary with overview, day navigation and timeline" width="100%" />
+</div>
 
 <br>
 
-## 📑 Table of Contents
+## 📑 Table of contents
 
-| | | |
-|---|---|---|
-| [✨ Features](#features) | [🏗️ Architecture](#architecture) | [🧰 Tech Stack](#tech-stack) |
-| [⚙️ Prerequisites](#prerequisites) | [🚀 Setup & Startup](#setup--startup) | [📜 Scripts](#other-useful-scripts) |
-| [📂 Project Structure](#project-structure) | [🧪 Testing](#testing) | [🤖 AI Usage Note](#ai-usage-note) |
-| [⚠️ Known Limitations](#known-limitations) | [⏱️ Time Spent](#time-spent) | |
+- [Features](#-features)
+- [Screenshots](#-screenshots)
+- [How it works](#-how-it-works)
+- [Architecture](#-architecture)
+- [Tech stack](#-tech-stack)
+- [Getting started](#-getting-started)
+- [Configuration](#-configuration)
+- [API reference](#-api-reference)
+- [Project structure](#-project-structure)
+- [Testing](#-testing)
+- [Deploying to AWS EC2](#-deploying-to-aws-ec2)
+- [Security notes and limitations](#-security-notes-and-limitations)
+- [Roadmap](#-roadmap)
+- [Built with](#-built-with)
 
 <br>
 
 ## ✨ Features
 
+### Planning
+
 | | |
 |---|---|
-| 📝 **Free-form trip input** | A single textarea (2,000-char limit) with client-side empty/whitespace validation — no rigid multi-field form to fill out. |
-| 🛡️ **Structured, AI-validated output** | Every Gemini response is parsed and checked against a shared Zod schema on **both** the backend and the frontend before it's trusted. Malformed or unexpected model output becomes a clear error state, never a crash. |
-| 🧩 **Multiple AI-driven block types** | Beyond plain stops, itineraries can include cost summaries, packing checklists, and simple bar charts — each rendered with a dedicated card. Unrecognized block types fall back gracefully to the default stop view. |
-| 🖱️ **Interactive, editable itinerary** | Expand/collapse any stop for full detail, remove a stop, or reorder stops with move-up/move-down controls — all immutable, keyboard-accessible state updates. |
-| 🌊 **Streaming responses** | Day and stop entries render incrementally as Gemini streams them back over Server-Sent Events, with a live in-progress indicator instead of a blank loading screen. |
-| 💬 **Refinement loop** | Ask for small follow-up changes ("add a coffee break," "swap day 2's museum for a park") without regenerating the whole plan from scratch. |
-| 💾 **Save & reload sessions** | The last itinerary persists to `localStorage` and offers to restore it on your next visit — corrupted or unavailable storage never breaks the app. |
-| 🔁 **Stale-request-safe UX** | A request-id + `AbortController` pair guarantees only the **latest** submitted request's outcome is ever rendered, no matter how fast you resubmit or how out-of-order responses arrive. |
-| ♻️ **Retry & regenerate flows** | A failed retry or regenerate keeps the previous itinerary visible with a non-blocking banner instead of blanking the screen; a successful regenerate cleanly replaces it. |
-| 🛫 **Travel-themed login wall** | An animated sign-in / register page (dusk sky or starry night, drifting clouds, planes flying dashed routes, pointer parallax, click-to-drop destination pins) with a boarding-pass style card, and a **Try the demo** button that unlocks every feature without an account. |
-| 🎨 **Accessible & responsive design** | Token-based design system with 4.5:1+ text contrast, a visible focus ring, 44px+ touch targets, full keyboard operability, dark mode, and a mobile-first layout that adapts at 768px. |
+| 📝 **Describe it your way** | One textarea (2,000 characters) with example prompts. No rigid multi-field form. |
+| 🎛️ **Trip preferences** | Trip length (1 to 14 days, or "Let AI decide"), who's going, budget level, pace and interests. Choices are added to the prompt only when you change them from the defaults. |
+| 🗺️ **Featured destinations** | Eight destinations (Kyoto, Paris, Bali, Santorini, New York, Iceland, Marrakech, Rome) with photos, filters and a **curated 3-day sample plan that opens instantly**, with no API call. Each card can also generate a fresh AI plan. |
+| 🌊 **Streaming results** | Days appear one by one as Gemini streams them over Server-Sent Events, with a live progress indicator and skeleton cards. |
+| 💬 **Refine in one sentence** | Ask for "add a coffee break" or "swap day 2's museum for a park" without regenerating the whole plan. |
+
+### Reading the plan
+
+| | |
+|---|---|
+| 🧭 **Trip overview** | Title, summary, duration, stop count, estimated budget and best time to visit. |
+| 📌 **Sticky day navigation** | Jump between days; the active day follows your scroll. |
+| 🕒 **Timeline cards** | Each stop has a category icon, time, price tag and expandable details: description, location with an **Open in Maps** link, and a tip callout. |
+| 💰 **Sidebar cards** | Budget breakdown with animated bars, an interactive packing checklist with progress, and local tips. |
+| 🧩 **Rich block types** | Cost summaries, checklists and bar charts render with their own cards. Unknown block types fall back to the standard stop view. |
+
+### Editing and polish
+
+| | |
+|---|---|
+| ↕️ **Editable itinerary** | Expand or collapse stops, remove them, or reorder with move up and move down controls. |
+| 💾 **Save and restore** | The last itinerary is saved to `localStorage` and offered back on your next visit. Corrupt or unavailable storage never breaks the app. |
+| 🔁 **Stale-request safe** | A request id plus `AbortController` guarantees only the latest request's result is rendered, however fast you resubmit. |
+| 🛫 **Travel-themed login** | Animated sign-in and register page with a **Try the demo** option that unlocks everything without an account. |
+| 🌗 **Light and dark themes** | Design tokens for both themes, with reduced-motion support. |
+| ♿ **Accessible by default** | Keyboard operable, visible focus ring, 44px touch targets, labelled controls and live regions. |
+| 📱 **Responsive** | Works from 375px phones to wide desktops. |
+| 🖨️ **Print ready** | One click to print or save the itinerary as PDF, with navigation and forms hidden. |
 
 <br>
 
-## 🏗️ Architecture
+## 🎨 Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/light-destinations.jpg" alt="Featured destinations gallery" /><br><sub><b>Featured destinations</b>: tap a card for an instant sample plan</sub></td>
+<td width="50%"><img src="docs/screenshots/light-stop-details.jpg" alt="Expanded stop with map link, tip and sidebar cards" /><br><sub><b>Stop details</b>: map link, tips, budget and packing list</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/dark-planner.jpg" alt="Dark theme planner" /><br><sub><b>Dark theme</b></sub></td>
+<td width="50%"><img src="docs/screenshots/dark-itinerary.jpg" alt="Dark theme itinerary" /><br><sub><b>Dark theme itinerary</b></sub></td>
+</tr>
+</table>
+
+<div align="center">
+<img src="docs/screenshots/mobile-planner.jpg" alt="Mobile planner" width="260" />
+&nbsp;&nbsp;
+<img src="docs/screenshots/mobile-itinerary.jpg" alt="Mobile itinerary" width="260" />
+<br><sub><b>Mobile</b></sub>
+</div>
+
+<br>
+
+## 🔄 How it works
+
+### 1. The user journey
+
+```mermaid
+flowchart TD
+    Start([Open the app]) --> Auth{Signed in?}
+    Auth -- No --> Login["Login wall<br/>sign in · register · try demo"]
+    Login --> Planner
+    Auth -- Yes --> Planner["Planner page"]
+
+    Planner --> Choice{How do you want to start?}
+    Choice -- "Describe a trip" --> Form["Write a description<br/>+ optional preferences"]
+    Choice -- "Pick a destination" --> Dest["Destination gallery"]
+
+    Dest -- "View sample plan" --> Sample["Curated plan<br/>shown instantly, no API call"]
+    Dest -- "Generate with AI" --> Form
+    Form --> Submit["Submit"]
+
+    Submit --> Stream["Stream itinerary from Gemini<br/>days appear one by one"]
+    Stream --> Valid{Valid response?}
+    Valid -- Yes --> Result["Itinerary view<br/>overview · timeline · sidebar"]
+    Valid -- No --> Err["Error state with Retry"]
+    Err -- Retry --> Submit
+    Sample --> Result
+
+    Result --> Edit["Expand · reorder · remove stops"]
+    Result --> Refine["Refine with one sentence"]
+    Result --> Export["Print / save PDF"]
+    Refine --> Stream2["POST /api/itinerary/refine"] --> Result
+    Result --> Save[("Saved to localStorage<br/>restore on next visit")]
+```
+
+### 2. What happens when you press "Plan my trip"
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant UI as React app
+    participant API as Express proxy
+    participant G as Gemini API
+
+    U->>UI: Describe trip + preferences
+    UI->>UI: Validate input, compose prompt, abort any older request
+    UI->>API: POST /api/itinerary/stream
+    API->>API: Validate body, check GEMINI_API_KEY
+    API->>G: streamGenerateContent (system prompt + responseSchema)
+    loop While Gemini streams
+        G-->>API: Text fragment
+        API->>API: Extract completed day objects
+        API-->>UI: SSE "chunk" { newDays }
+        UI->>UI: Render new day cards
+    end
+    API->>API: Validate full result with shared Zod schema
+    alt Valid
+        API-->>UI: SSE "done" { itinerary }
+        UI->>UI: Validate again, show final itinerary, save to localStorage
+    else Invalid or upstream failure
+        API-->>UI: SSE "error" { error }
+        UI->>U: Error state with Retry
+    end
+```
+
+### 3. Request lifecycle in the UI
+
+Every submission moves through the same small state machine, so the screen always shows exactly one state.
+
+```mermaid
+stateDiagram-v2
+    [*] --> idle
+    idle --> streaming: submit
+    idle --> success: restore saved trip
+    streaming --> streaming: "chunk" adds day cards
+    streaming --> success: "done", schema valid
+    streaming --> error: "error" event or invalid data
+    success --> streaming: regenerate (old plan stays visible)
+    success --> success: refine succeeds, plan replaced
+    error --> streaming: retry
+```
+
+> A newer submission aborts the older request, so a late response can never overwrite the latest one. If a retry, regenerate or refinement fails, the previous itinerary stays on screen with a non-blocking banner, and days that had already streamed in are kept and marked incomplete.
+
+### 4. Authentication flow
 
 ```mermaid
 flowchart LR
-    subgraph Browser["🌐 Browser — React SPA"]
-        A[TripInputForm]
-        B["useItineraryRequest()\n(request-id + AbortController)"]
-        C[Zod validation]
-        D["ItineraryView\n(DayCard · StopItem)"]
-        A --> B --> C --> D
-    end
-
-    subgraph Proxy["🖥️ Backend Proxy — Express / Node.js"]
-        E[Validate request]
-        F[Build prompt + responseSchema]
-        G["GEMINI_API_KEY\n(server-only)"]
-        H[Zod validation]
-        E --> F --> H
-        G -.attached to outbound call.-> F
-    end
-
-    subgraph LLM["🤖 Gemini API"]
-        I[generateContent /\nstreamGenerateContent]
-    end
-
-    B -- "POST /api/itinerary" --> E
-    F -- "prompt + schema" --> I
-    I -- "raw JSON text" --> H
-    H -- "{ itinerary } or { error }" --> C
+    A[AuthPage] -->|Register / Sign in| B["POST /api/auth/register<br/>or /login"]
+    B -->|"{ user, token }"| C[("localStorage<br/>session")]
+    A -->|Try the demo| D[("localStorage<br/>mode: demo")]
+    C --> F[App]
+    C -.->|"re-checked in background<br/>GET /api/auth/me"| E{Token valid?}
+    E -->|yes| F
+    E -->|"no (401)"| A
+    D --> F
+    F -->|Sign out| G["POST /api/auth/logout"] --> A
 ```
 
-> **Why the proxy exists:** `GEMINI_API_KEY` must never reach the browser. The key lives only in the proxy's process environment, is read once per request, and is never included in any response body sent back to the client. The frontend only ever talks to same-origin `/api/itinerary` — it has zero network visibility of Gemini's endpoint or credentials. As defense in depth, the backend also runs the same Zod schema on Gemini's response *before* forwarding it, so a shape the backend itself considers invalid never reaches the frontend disguised as a `200 OK`.
+### 5. Data model
+
+The shared schema in `shared/itinerarySchema.ts` is the single source of truth. Core fields are strict. Decorative extras (title, summary, budget, packing list, tips, categories, prices) are optional and **dropped quietly if malformed**, so a small model slip never fails the whole response.
+
+```mermaid
+erDiagram
+    ITINERARY ||--|{ DAY : has
+    ITINERARY ||--o| BUDGET : "may have"
+    ITINERARY {
+        string title
+        string destination
+        string summary
+        string bestTime
+        string[] packingList
+        string[] tips
+    }
+    DAY ||--|{ STOP : contains
+    DAY {
+        string title
+        string summary
+    }
+    STOP {
+        string title
+        string time
+        string location
+        string description
+        string category
+        string price
+        string notes
+    }
+    BUDGET ||--|{ BUDGET_ITEM : "broken into"
+    BUDGET {
+        string currency
+        number total
+    }
+    BUDGET_ITEM {
+        string label
+        number amount
+    }
+```
 
 <br>
 
-## 🧰 Tech Stack
+## 🧱 Architecture
+
+```mermaid
+flowchart LR
+    subgraph Browser["🌐 Browser · React SPA"]
+        UI["Planner UI<br/>hero · form · gallery"]
+        Hook["useItineraryRequest<br/>request id + AbortController"]
+        ZC["Zod validation"]
+        View["Itinerary view<br/>overview · days · sidebar"]
+        UI --> Hook --> ZC --> View
+    end
+
+    subgraph Server["🖥️ Express proxy · Node.js"]
+        Routes["/api/itinerary*<br/>/api/auth"]
+        Prompt["Prompt + responseSchema"]
+        Parse["Stream parser"]
+        ZS["Zod validation"]
+        Key["GEMINI_API_KEY<br/>server only"]
+        Routes --> Prompt --> Parse --> ZS
+        Key -.-> Prompt
+    end
+
+    LLM["🤖 Google Gemini API"]
+
+    Hook -- "same-origin /api" --> Routes
+    Prompt -- "prompt + schema" --> LLM
+    LLM -- "streamed JSON" --> Parse
+    ZS -- "SSE chunk / done / error" --> Hook
+```
+
+**Why a proxy?** The Gemini key must never reach the browser. It lives only in the server's environment and is never included in a response. The frontend only talks to same-origin `/api` paths, so it has no visibility of Gemini's endpoint or credentials.
+
+**Why validate twice?** The server checks Gemini's output before forwarding it, so an invalid shape can't be disguised as a `200 OK`. The client checks again because it should never trust the network.
+
+<br>
+
+## 🧰 Tech stack
 
 | Layer | Choice | Why |
 |---|---|---|
-| **Frontend** | React 18 + Vite + TypeScript | Fast cold-start dev server, zero-config TS, functional components + hooks only — no extra state library needed for the app's one meaningful piece of shared state. |
-| **Backend** | Express (Node.js) | Minimal, extremely well-known, one route, trivial `npm start` story — no serverless/deploy config needed to run locally. |
-| **LLM** | Google Gemini (`gemini-flash-lite-latest`) | Native JSON-mode + `responseSchema` support constrains the model's output shape; a fast, low-latency model keeps the "thinking" overhead of Gemini 3.x's reasoning models out of the critical path. |
-| **Validation** | Zod (shared schema) | One schema (`shared/itinerarySchema.ts`) imported by both sides via a `@shared/*` path alias — a single source of truth for what counts as a valid itinerary, enforced identically on the server (defense in depth) and the client. |
-| **Testing** | Vitest + React Testing Library | Pairs natively with Vite (same transform pipeline, no separate config), fast watch mode, first-class ESM/TS support. |
-| **Styling** | CSS Modules + design tokens | No UI-kit/Tailwind dependency risk in a time-boxed build; scoped styles avoid collisions, and a single `tokens.css` keeps color/spacing/contrast consistent and easy to audit for accessibility. |
+| **Frontend** | React 18, Vite, TypeScript | Fast dev server, strict types, hooks only. No state library needed. |
+| **Icons** | lucide-react | Consistent, tree-shakeable icon set. |
+| **Styling** | CSS Modules + design tokens | Scoped styles and one `tokens.css` for light and dark themes. |
+| **Backend** | Express on Node.js | Small, well known, easy to host anywhere. |
+| **AI** | Google Gemini (`gemini-flash-lite-latest`) | JSON mode with `responseSchema` constrains output; a fast model keeps streaming snappy. |
+| **Validation** | Zod, shared via the `@shared/*` alias | One schema enforced identically on server and client. |
+| **Streaming** | Server-Sent Events | Simple one-way stream, works through standard proxies. |
+| **Testing** | Vitest + React Testing Library | Shares Vite's pipeline, fast and ESM native. |
+| **Images** | Unsplash | Destination photos, with gradient fallbacks if they fail to load. |
 
 <br>
 
-## ⚙️ Prerequisites
+## 🚀 Getting started
+
+### Prerequisites
 
 | Requirement | Notes |
 |---|---|
-| **Node.js** ≥ 18 | Required by Vite 5 and the `tsx`-based backend. Node 22+ (22.9+) enables the native `--env-file-if-exists` flag used by the `server` script. |
-| **npm** | Ships with Node — no other package manager needed. |
-| **Gemini API key** | Get one for free at [Google AI Studio](https://aistudio.google.com/app/apikey). |
+| **Node.js** 22.9 or newer | The server script uses the native `--env-file-if-exists` flag. |
+| **npm** | Ships with Node. |
+| **Gemini API key** | Free from [Google AI Studio](https://aistudio.google.com/app/apikey). |
 
-<br>
-
-## 🚀 Setup & Startup
-
-**1. Install dependencies**
-
-A single root `package.json` covers both the frontend and backend — there are no separate `client`/`server` packages to install.
+### Run locally
 
 ```bash
+# 1. Clone and install (one package.json covers frontend and backend)
+git clone https://github.com/Exohubb/ai-trip-planner.git
+cd ai-trip-planner
 npm install
-```
 
-**2. Configure your Gemini API key**
-
-Copy the example env file:
-
-```bash
+# 2. Add your Gemini key
 cp .env.example .env
-```
+#    then edit .env and set GEMINI_API_KEY=your-key
 
-Then edit `.env` and set the exact variable name the backend reads:
-
-```dotenv
-GEMINI_API_KEY=your-real-key-here
-```
-
-> The backend proxy (`server/server.ts`) reads `process.env.GEMINI_API_KEY` at request time. If it's missing, the API responds with a `server_misconfigured` error instead of attempting a call to Gemini — the key is only ever used server-side and is never sent to or exposed in the browser.
-
-**3. Start the app**
-
-Runs the Vite dev server and the Express proxy together:
-
-```bash
+# 3. Start the Vite dev server and the Express proxy together
 npm start
 ```
 
-Under the hood this is `concurrently "npm:client" "npm:server"`:
+Open **http://localhost:5173**. Use **Try the demo** on the login page to skip account creation.
 
-| Process | Command | Serves |
-|---|---|---|
-| `client` | `vite` | React frontend at `http://localhost:5173` |
-| `server` | `tsx watch --env-file-if-exists=.env server/server.ts` | Express proxy on port `3001` (configurable via `SERVER_PORT`) |
+> No key yet? The demo destinations still work, because the curated sample plans need no API call. Generating a new plan requires the key.
 
-Vite's dev server proxies any `/api/*` request to the Express server, so the frontend only ever calls same-origin paths — no CORS setup needed.
-
-**4. Open the app**
-
-Visit **`http://localhost:5173`**, describe a trip, and submit.
-
-> `npm run dev` is an alias for the exact same command as `npm start`, in case either is expected by convention.
-
-**Stopping the app:** press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal running `npm start` — this stops both the Vite dev server and the Express proxy together, since they run under the same `concurrently` process.
-
-<br>
-
-### 📜 Other Useful Scripts
+### Scripts
 
 | Command | What it does |
 |---|---|
-| `npm test` | Runs the full test suite once with Vitest |
-| `npm run build` | Builds the frontend for production with Vite |
-| `npm run typecheck` | Runs `tsc --noEmit` across the whole project |
+| `npm start` / `npm run dev` | Runs the client (`:5173`) and server (`:3001`) together |
+| `npm run client` | Vite dev server only |
+| `npm run server` | Express proxy only, with auto-reload |
+| `npm test` | Runs the whole test suite once |
+| `npm run typecheck` | `tsc --noEmit` across the project |
+| `npm run build` | Production build of the frontend into `dist/` |
+
+Vite proxies `/api/*` to the Express server in development, so there is no CORS setup.
 
 <br>
 
-## 📂 Project Structure
+## 🔧 Configuration
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `GEMINI_API_KEY` | ✅ | none | Your Gemini key. Without it the API returns `server_misconfigured`. |
+| `SERVER_PORT` | | `3001` | Port the Express server listens on. |
+| `AUTH_DATA_FILE` | | `server/data/users.json` | Where login accounts are stored. |
+
+Put these in `.env`. The file is gitignored, so never commit it. `.env.example` is the committed template and must stay free of real keys.
+
+<br>
+
+## 🔌 API reference
+
+All errors have the shape `{ "error": "<code>" }`.
+
+| Method | Path | Body | Success | Errors |
+|---|---|---|---|---|
+| `GET` | `/api/health` | none | `200` | none |
+| `POST` | `/api/itinerary` | `{ description }` | `200 { itinerary }` | `missing_description`, `description_too_long`, `server_misconfigured`, `upstream_error`, `invalid_response` |
+| `POST` | `/api/itinerary/stream` | `{ description }` | `200` SSE: `chunk { newDays }`, `done { itinerary }`, `error { error }` | same codes as above |
+| `POST` | `/api/itinerary/refine` | `{ instruction, currentItinerary }` | `200 { itinerary }` | `missing_instruction`, `instruction_too_long`, `invalid_current_itinerary`, `server_misconfigured`, `upstream_error`, `invalid_response` |
+| `POST` | `/api/auth/register` | `{ name, email, password }` | `201 { user, token }` | `missing_fields`, `invalid_name`, `invalid_email`, `weak_password`, `email_taken` (409) |
+| `POST` | `/api/auth/login` | `{ email, password }` | `200 { user, token }` | `missing_fields`, `invalid_credentials` |
+| `GET` | `/api/auth/me` | `Authorization: Bearer <token>` | `200 { user }` | `401 unauthorized` |
+| `POST` | `/api/auth/logout` | `Authorization: Bearer <token>` | `204` | none |
+
+**Quick test**
+
+```bash
+curl -N -X POST http://localhost:3001/api/itinerary/stream \
+  -H "Content-Type: application/json" \
+  -d '{"description":"A relaxed 3-day trip to Lisbon for two, mostly food and walking"}'
+```
+
+<br>
+
+## 📂 Project structure
 
 ```
 ai-trip-planner/
-├── README.md
-├── package.json                  # root scripts: "start" runs client + server concurrently
-├── .env.example                  # GEMINI_API_KEY=
+├── docs/screenshots/            # README images
 ├── shared/
-│   └── itinerarySchema.ts        # Zod schema + inferred types, shared by frontend & backend
+│   └── itinerarySchema.ts       # Zod schema + types, used by server and client
 ├── server/
-│   ├── server.ts                 # Express app: /api/itinerary, /api/itinerary/stream, /api/itinerary/refine, /api/auth
-│   ├── authRoutes.ts             # /api/auth: register, login, me, logout
-│   ├── userStore.ts              # file-backed account + session store (demo-grade, plain text)
-│   ├── gemini.ts                 # callLLM() / streamLLM() — isolated Gemini integration
-│   ├── promptBuilder.ts          # builds the system instruction + responseSchema for Gemini
-│   └── streamParser.ts           # incremental Day-object extraction from a streamed response
+│   ├── server.ts                # Express app and itinerary routes (JSON + SSE)
+│   ├── authRoutes.ts            # register, login, me, logout
+│   ├── userStore.ts             # file-backed accounts and sessions (demo grade)
+│   ├── gemini.ts                # callLLM() / streamLLM(): isolated Gemini integration
+│   ├── promptBuilder.ts         # system instruction + responseSchema
+│   └── streamParser.ts          # pulls completed days out of a streamed response
 ├── src/
-│   ├── main.tsx, Root.tsx (login wall gate), App.tsx
-│   ├── hooks/
-│   │   ├── useItineraryRequest.ts   # request-lifecycle hook: request-id + AbortController
-│   │   ├── useStoredItinerary.ts    # localStorage save/restore for the last itinerary
-│   │   ├── useAuth.ts               # session (account or demo) in localStorage
-│   │   ├── useTheme.ts              # dark mode toggle + persistence
-│   │   └── useGlobalShortcut.ts     # keyboard shortcuts (skipped while typing)
-│   ├── lib/
-│   │   ├── fetchAndValidateItinerary.ts   # fetch → parse → Zod-validate pipeline
-│   │   ├── streamItinerary.ts             # SSE consumer for the streaming endpoint
-│   │   ├── fetchAndValidateRefinement.ts  # refinement request pipeline
-│   │   └── validateTripDescription.ts     # client-side input validation
+│   ├── main.tsx, Root.tsx       # entry + login wall gate
+│   ├── App.tsx                  # planner page: nav, hero, results, gallery, footer
+│   ├── data/destinations.ts     # 8 destinations with curated sample itineraries
+│   ├── hooks/                   # useItineraryRequest, useStoredItinerary, useAuth, useTheme, ...
+│   ├── lib/                     # fetch + validate pipelines, SSE client, tripPreferences, stopCategory
 │   ├── components/
-│   │   ├── TripInputForm/                          # controlled textarea + submit
-│   │   ├── ResultArea/                             # switches on request status → one state component
-│   │   ├── LoadingSkeleton/, ErrorState/, EmptyState/, EmptyResultState/
-│   │   ├── RetryBanner/, RestorePrompt/, StreamingIndicator/
-│   │   ├── ItineraryView/, DayCard/, StopItem/
-│   │   ├── AuthPage/ (+ TravelScene), AccountBar/  # login wall + header account chip
-│   │   ├── RefinementForm/, ThemeToggle/
-│   │   └── CostCard/, ChecklistCard/, ChartCard/   # type-specific block renderers
-│   └── styles/tokens.css                # design tokens: color, spacing, type, focus ring, dark theme
-├── vite.config.ts                # dev-server proxy: /api → the Express port
-└── tsconfig.json                 # @shared/* path alias
+│   │   ├── PlannerHero/  TripInputForm/  TripPreferences/
+│   │   ├── DestinationGallery/  HowItWorks/
+│   │   ├── ResultArea/  TripOverview/  ItineraryView/  DayCard/  StopItem/
+│   │   ├── TripSidebar/             # budget, packing list, tips
+│   │   ├── CostCard/  ChecklistCard/  ChartCard/
+│   │   ├── RefinementForm/  RetryBanner/  RestorePrompt/  StreamingIndicator/
+│   │   ├── LoadingSkeleton/  ErrorState/  EmptyState/  EmptyResultState/
+│   │   └── AuthPage/  AccountBar/  ThemeToggle/
+│   └── styles/tokens.css        # colors, spacing, type, shadows, dark theme
+├── vite.config.ts               # dev proxy: /api -> Express
+└── .env.example
 ```
 
 <br>
 
 ## 🧪 Testing
 
-The suite is weighted toward the highest-risk area first — the AI-response parse/validation pipeline — plus every component and the request-lifecycle race condition.
-
-<div align="center">
-
 | Metric | Result |
 |---|---|
-| **Test files** | 28 |
-| **Tests** | 227 passing ✅ |
-| **Typecheck** | `tsc --noEmit` clean ✅ |
+| Test files | 31 |
+| Tests | 248 passing ✅ |
+| Type check | `tsc --noEmit` clean ✅ |
 
-</div>
+Tests are weighted toward the riskiest area first, the AI response pipeline.
 
-| Area | Coverage |
+| Area | What's covered |
 |---|---|
-| **Schema validation** (`shared/itinerarySchema.test.ts`) | Valid/invalid shapes, size limits, unknown-field tolerance, recognized vs. unrecognized block types |
-| **Backend** (`server/*.test.ts`) | Request validation, API key guard, prompt building, Gemini response validation before forwarding, SSE streaming, refinement endpoint |
-| **Frontend pipeline** (`src/lib/*.test.ts`) | Malformed JSON, non-2xx, network failure, schema-invalid bodies, streaming chunk parsing |
-| **Request lifecycle** (`src/hooks/useItineraryRequest.test.ts`) | A second submission while the first is still pending correctly discards the first's late-arriving response |
-| **Components** (`src/components/**/*.test.tsx`, `src/App.test.tsx`) | Every state (loading, error, empty, populated), expand/collapse, remove/reorder, retry/regenerate, restore-on-load, theme toggle |
+| **Schema** | Valid and invalid shapes, size limits, malformed optional extras being dropped |
+| **Backend** | Request validation, key guard, prompt building, response validation, SSE streaming, refine, auth |
+| **Frontend pipeline** | Malformed JSON, non-2xx, network failure, schema-invalid bodies, stream parsing |
+| **Request lifecycle** | A late response from an older request is discarded |
+| **Components** | Every state (loading, error, empty, populated), editing, retry, restore, preferences, sample plans |
 
 ```bash
-npm test          # run the full suite once
-npm run typecheck  # run the type checker
+npm test
+npm run typecheck
 ```
 
 <br>
 
-## 🤖 AI Usage Note
+## 🚢 Deploying to AWS EC2
 
-This project was built with **[Kiro](https://kiro.dev)**, an AI-powered development environment, working from a spec (`requirements.md` → `design.md` → `tasks.md`, also authored with AI assistance) broken into small, incrementally-committed tasks. Kiro wrote essentially all of the code in this repository, including:
+The Express server only serves `/api`. It does not serve the built frontend, so a single Ubuntu instance runs **nginx** (static files + reverse proxy) in front of **Node**.
 
-- the shared Zod schema (`shared/itinerarySchema.ts`) and its unit tests
-- the Express backend proxy, Gemini prompt-building and API integration (`server/promptBuilder.ts`, `server/gemini.ts`), streaming and refinement endpoints, and backend response validation
-- the frontend request/parse/validation pipeline and the stale-response-safe request lifecycle hook (`src/hooks/useItineraryRequest.ts`)
-- all React components (input form, itinerary view, day/stop/block cards, loading/error/empty states, theme toggle, restore prompt) and their CSS
-- the full test suite (207 unit and integration tests across schema, backend, and frontend code) and the design-token-based accessible/responsive styling
+```mermaid
+flowchart LR
+    U[Browser] -->|"HTTPS :443"| N["nginx"]
+    N -->|"static files"| D["dist/"]
+    N -->|"/api → localhost:3001"| E["Express · systemd"]
+    E --> G["Gemini API"]
+```
 
-Each task was implemented, tested, and committed one at a time rather than generated as one large drop, so the git history reflects incremental, reviewable progress. A human directed the overall architecture and requirements via the spec, reviewed the generated code and test results at each step, ran a live end-to-end verification pass against the real Gemini API (which surfaced and led to fixes for a deprecated model name, an unsupported schema field, a missing required field, and an SSE line-ending parsing bug — see [Known Limitations](#️-known-limitations)), and made the final calls on scope.
+1. **Launch** an Ubuntu LTS `t3.micro` with 16 GiB storage. Security group: SSH (22) from your IP only, HTTP (80) and HTTPS (443) open. **Do not open 3001.**
+2. **Attach an Elastic IP** so the address survives restarts.
+3. **Install** Node 22+, nginx and git.
+4. **Build locally** with `npm run build` (a 1 GB instance can run out of memory building), then upload `dist/`. On the server, run `npm ci --omit=dev` and create `.env` with `GEMINI_API_KEY`.
+5. **Run the API** under systemd or pm2 so it restarts on reboot.
+6. **Configure nginx**:
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.example;
+
+    root /var/www/ai-trip-planner/dist;
+    index index.html;
+
+    location / {
+        try_files $uri /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    # Streaming must not be buffered, or days arrive all at once at the end
+    location /api/itinerary/stream {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 120s;
+    }
+}
+```
+
+7. **HTTPS**: point your domain at the Elastic IP and run `sudo certbot --nginx`.
 
 <br>
 
-## ⚠️ Known Limitations
+## 🔐 Security notes and limitations
 
-- **The login wall is for demonstration only.** Accounts are stored in a local JSON file (`server/data/users.json`, gitignored, overridable via `AUTH_DATA_FILE`) with **plain-text passwords** and no hashing, rate limiting, or token expiry. The itinerary endpoints don't require a session either (demo mode uses them freely). Don't enter a real password, and don't deploy this as-is.
+Read this before deploying publicly.
 
-- **Single LLM provider.** Only Gemini is supported; there's no provider abstraction layer, since the assignment scope didn't call for multi-provider support.
-- **No authentication or rate limiting** on the itinerary endpoints. This is a local evaluation project, not a hardened multi-tenant deployment — running it publicly as-is would let anyone with network access consume your Gemini quota.
-- **Model availability drifts over time.** `server/gemini.ts` pins a specific Gemini model name; Google periodically deprecates/renames models, which previously caused live 404s until the model was updated during manual verification. If Gemini returns 404s again in the future, check `GET https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY` for currently available model names.
-- **Real browser/device verification is still recommended.** The 375px / 768px / desktop layout breakpoints and the keyboard-only navigation pass were validated by code review against the design's requirements and via the automated test suite, not by driving an actual browser or device end-to-end. A manual pass with real browser dev tools (or real devices) and a screen reader is still worthwhile before shipping to production.
+- **The login wall is demo grade.** Accounts live in a local JSON file (`server/data/users.json`, gitignored) with **plain-text passwords**, no hashing, no token expiry and no rate limiting. Don't use a real password, and hash passwords (for example with `argon2` or `bcrypt`) before real use.
+- **The itinerary endpoints don't require a session.** Anyone who can reach the server can spend your Gemini quota. Add authentication and rate limiting on `/api/itinerary*` before exposing it.
+- **The Gemini key stays server side.** It is read from the environment per request and never returned to the client.
+- **Single provider.** Only Gemini is supported. `server/gemini.ts` pins a model name. If Google retires it you'll see upstream 404s, so check `GET https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY` for current names.
+- **AI output can be wrong.** Prices, opening hours and availability in generated plans are suggestions. Verify them before booking. The curated sample plans are illustrative too.
+- **Assistive technology.** Keyboard and contrast behaviour are covered by tests and review, but a full screen-reader pass on real devices is still worthwhile.
 
 <br>
 
-## ⏱️ Time Spent
+## 🧭 Roadmap
 
-Approximately **8 hours** were spent building the mandatory core (schema, backend proxy and Gemini integration, frontend request pipeline, interactive itinerary UI, accessibility and responsive styling, manual verification, and documentation), matching the project's intended time budget. Additional time was spent implementing all five optional stretch goals — multiple AI-driven block types, streaming responses, the refinement loop, save/reload sessions, and UI polish (dark mode, animations, keyboard shortcuts) — plus a live end-to-end verification pass against the real Gemini API that surfaced and fixed several integration bugs invisible to mocked tests alone.
+- [ ] Hash passwords, add token expiry and rate limiting
+- [ ] Require a session for itinerary endpoints
+- [ ] Save multiple trips per account, backed by a database
+- [ ] Shareable read-only trip links
+- [ ] Drag-and-drop stop reordering
+- [ ] Map view of each day's stops
+- [ ] Docker image and one-command deploy
+
+<br>
+
+## 🔨 Built with
+
+Built with [Kiro](https://kiro.dev), working from a spec (`.kiro/specs/ai-trip-planner`) and delivered in small, tested increments. Destination photos are from [Unsplash](https://unsplash.com). Icons by [Lucide](https://lucide.dev).
 
 <br>
 
 <div align="center">
 
-**[⬆ back to top](#-ai-trip-planner)**
+**[⬆ Back to top](#)**
 
 </div>
