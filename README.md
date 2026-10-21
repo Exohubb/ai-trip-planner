@@ -6,7 +6,7 @@
 
 **Describe a trip in plain English. Get a streamed, day-by-day itinerary with times, costs, maps and local tips, validated end to end before it reaches the screen.**
 
-[**🌍 Live demo**](https://YOUR-LIVE-URL-HERE) &nbsp;·&nbsp; [Features](#-features) &nbsp;·&nbsp; [How it works](#-how-it-works) &nbsp;·&nbsp; [Getting started](#-getting-started) &nbsp;·&nbsp; [API](#-api-reference) &nbsp;·&nbsp; [Deploy](#-deploying-to-aws-ec2)
+[**🌍 Live demo**](https://100-31-208-177.sslip.io) &nbsp;·&nbsp; [Features](#-features) &nbsp;·&nbsp; [How it works](#-how-it-works) &nbsp;·&nbsp; [Getting started](#-getting-started) &nbsp;·&nbsp; [API](#-api-reference) &nbsp;·&nbsp; [Deploy](#-deploying-to-aws-ec2)
 
 <br>
 
